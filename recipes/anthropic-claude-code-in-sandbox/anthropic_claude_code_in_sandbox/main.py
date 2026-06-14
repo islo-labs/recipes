@@ -16,6 +16,12 @@ from islo.custom.exec import exec_and_wait_sync
 
 load_dotenv()
 
+NODE_BOOTSTRAP = (
+    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
+    "sudo apt-get update -qq && "
+    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
+    "nodejs npm"
+)
 INSTALL_CLAUDE = "npm install -g @anthropic-ai/claude-code"
 PROMPT = "Create a hello world index.html"
 CLAUDE_CMD = (
@@ -62,6 +68,8 @@ def main() -> int:
     print(f"Creating computer {name!r}…")
 
     with computer(client, name=name):
+        print("Installing Node.js…")
+        must_exec(client, name, NODE_BOOTSTRAP, timeout=600)
         print("Installing Claude Code…")
         must_exec(client, name, INSTALL_CLAUDE, timeout=600)
         print("Running Claude Code…")

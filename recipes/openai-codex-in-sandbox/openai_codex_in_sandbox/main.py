@@ -16,6 +16,12 @@ from islo.custom.exec import exec_and_wait_sync
 
 load_dotenv()
 
+NODE_BOOTSTRAP = (
+    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
+    "sudo apt-get update -qq && "
+    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
+    "nodejs npm"
+)
 INSTALL_CODEX = "npm install -g @openai/codex"
 PROMPT = "Create a hello world index.html"
 CODEX_CMD = (
@@ -63,6 +69,8 @@ def main() -> int:
     print(f"Creating computer {name!r}…")
 
     with computer(client, name=name):
+        print("Installing Node.js…")
+        must_exec(client, name, NODE_BOOTSTRAP, timeout=600)
         print("Installing Codex…")
         must_exec(client, name, INSTALL_CODEX, timeout=600)
         print("Running Codex…")

@@ -16,6 +16,12 @@ name = "my-claude-computer"
 client.sandboxes.create_sandbox(name=name)
 
 exec_and_wait_sync(
+    client,
+    name,
+    ["sh", "-c", "sudo apt-get update -qq && sudo apt-get install -y nodejs npm"],
+    timeout=600,
+)
+exec_and_wait_sync(
     client, name, ["sh", "-c", "npm install -g @anthropic-ai/claude-code"], timeout=600
 )
 
