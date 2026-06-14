@@ -1,0 +1,87 @@
+name: Recipes smoke
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: Recipe id (or "all")
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - gateway-allowlist
+          - docker-compose-fastapi-postgres
+          - web-app-e2e
+          - harbor-evals
+          - mount-s3
+
+concurrency:
+  group: recipes-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ISLO_BASE_URL: ${{ vars.ISLO_BASE_URL }}
+      ISLO_API_KEY: ${{ secrets.ISLO_API_KEY }}
+      ISLO_RECIPES_REPO_URL: https://github.com/${{ github.repository }}
+      ISLO_RECIPES_REF: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --extra dev --extra web-app-e2e
+
+      - name: Install Harbor (harbor-evals)
+        if: github.event.inputs.recipe == 'harbor-evals' || github.event.inputs.recipe == 'all' || github.event_name == 'schedule'
+        run: uv tool install 'harbor[islo]'
+
+      - name: Run gateway-allowlist
+        if: |
+          github.event_name == 'schedule' ||
+          github.event.inputs.recipe == 'all' ||
+          github.event.inputs.recipe == 'gateway-allowlist'
+        run: uv run python recipes/gateway-allowlist/run.py
+
+      - name: Run docker-compose-fastapi-postgres
+        if: |
+          github.event_name == 'schedule' ||
+          github.event.inputs.recipe == 'all' ||
+          github.event.inputs.recipe == 'docker-compose-fastapi-postgres'
+        run: uv run python recipes/docker-compose-fastapi-postgres/run.py
+
+      - name: Run web-app-e2e
+        if: |
+          github.event_name == 'schedule' ||
+          github.event.inputs.recipe == 'all' ||
+          github.event.inputs.recipe == 'web-app-e2e'
+        run: uv run python recipes/web-app-e2e/run.py
+
+      - name: Run harbor-evals
+        if: |
+          github.event_name == 'schedule' ||
+          github.event.inputs.recipe == 'all' ||
+          github.event.inputs.recipe == 'harbor-evals'
+        env:
+          ISLO_API_URL: ${{ vars.ISLO_BASE_URL }}
+        run: uv run python recipes/harbor-evals/run.py
+
+      - name: Run mount-s3 (manual only)
+        if: github.event.inputs.recipe == 'mount-s3'
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ISLO_IAM_READY: "1"
+        run: uv run python recipes/mount-s3/run.py

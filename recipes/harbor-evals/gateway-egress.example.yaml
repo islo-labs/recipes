@@ -1,0 +1,20 @@
+# Example Harbor config: inline gateway rules to block answer sources during evals.
+# Harbor creates an ephemeral gateway profile per run when using inline rules.
+#
+# See https://docs.islo.dev/integrations/harbor
+
+environment:
+  type: islo
+  kwargs:
+    gateway:
+      default_action: allow
+      rules:
+        - host_pattern: "*.github.com"
+          action: deny
+        - host_pattern: "*"
+          action: deny
+          priority: 10
+          content_filter:
+            filter_type: regex
+            pattern: "(?i)(terminal-bench|swe-bench).*solution"
+            direction: response

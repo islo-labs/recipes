@@ -1,0 +1,45 @@
+recipes:
+  - id: gateway-allowlist
+    title: Restrict computer egress to package registries
+    tags: [gateway, security, egress]
+    difficulty: beginner
+    entrypoint: run.py
+    ci_tier: smoke
+    env_required: [ISLO_API_KEY]
+    pass_output: "PASS: gateway-allowlist"
+
+  - id: docker-compose-fastapi-postgres
+    title: Run FastAPI and Postgres with Docker Compose
+    tags: [docker, compose, database, fastapi]
+    difficulty: intermediate
+    entrypoint: run.py
+    ci_tier: smoke
+    env_required: [ISLO_API_KEY, ISLO_RECIPES_REPO_URL]
+    pass_output: "PASS: docker-compose-fastapi-postgres"
+
+  - id: web-app-e2e
+    title: Browser E2E tests for a web app on an Islo computer
+    tags: [playwright, fastapi, e2e, git-source]
+    difficulty: intermediate
+    entrypoint: run.py
+    ci_tier: smoke
+    env_required: [ISLO_API_KEY, ISLO_RECIPES_REPO_URL]
+    pass_output: "PASS: web-app-e2e"
+
+  - id: harbor-evals
+    title: Run Harbor agent evals on Islo
+    tags: [harbor, evals, agents]
+    difficulty: beginner
+    entrypoint: run.py
+    ci_tier: smoke
+    env_required: [ISLO_API_KEY]
+    pass_output: "PASS: harbor-evals"
+
+  - id: mount-s3
+    title: Mount an S3 bucket on an Islo computer
+    tags: [aws, s3, storage, custom-image, gateway]
+    difficulty: intermediate
+    entrypoint: run.py
+    ci_tier: manual
+    env_required: [ISLO_API_KEY, AWS_ROLE_ARN, S3_BUCKET]
+    pass_output: "PASS: mount-s3"
