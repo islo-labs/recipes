@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import sys
 import time
 import uuid
@@ -16,17 +17,38 @@ from islo.custom.exec import exec_and_wait_sync
 
 load_dotenv()
 
-NODE_BOOTSTRAP = (
-    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
-    "sudo apt-get update -qq && "
-    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
-    "nodejs npm"
-)
-INSTALL_CLAUDE = "npm install -g @anthropic-ai/claude-code"
+AGENT_USER = "agent"
+ENV_FILE = "/tmp/agent-env"
+POLL_INTERVAL = 0.5
 PROMPT = "Create a hello world index.html"
-CLAUDE_CMD = (
-    f"echo {PROMPT!r} | claude -p --dangerously-skip-permissions"
-)
+
+# One exec: apt, agent user, and global npm install (fewer round trips).
+AGENT_SETUP = """
+set -eu
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm
+id -u agent >/dev/null 2>&1 || useradd -m -s /bin/bash agent
+npm install -g --no-fund --no-audit --loglevel=error @anthropic-ai/claude-code
+"""
+
+CLAUDE_CMD = f"cd ~ && echo {PROMPT!r} | claude -p --dangerously-skip-permissions"
+
+
+def write_agent_env(client: Islo, name: str, variables: dict[str, str]) -> None:
+    lines = "\n".join(f"export {key}={shlex.quote(val)}" for key, val in variables.items())
+    must_exec(
+        client,
+        name,
+        f"cat > {ENV_FILE} <<'AGENT_ENV_EOF'\n{lines}\nAGENT_ENV_EOF\n"
+        f"chmod 600 {ENV_FILE} && chown {AGENT_USER}:{AGENT_USER} {ENV_FILE}",
+        timeout=30,
+    )
+
+
+def run_as_agent(cmd: str) -> str:
+    inner = f". {ENV_FILE} && {cmd}"
+    return f"sudo -u {AGENT_USER} -H sh -c {shlex.quote(inner)}"
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 600) -> None:
@@ -45,7 +67,7 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             break
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
     try:
@@ -68,16 +90,14 @@ def main() -> int:
     print(f"Creating computer {name!r}…")
 
     with computer(client, name=name):
-        print("Installing Node.js…")
-        must_exec(client, name, NODE_BOOTSTRAP, timeout=600)
-        print("Installing Claude Code…")
-        must_exec(client, name, INSTALL_CLAUDE, timeout=600)
+        print("Installing Node.js and Claude Code…")
+        must_exec(client, name, AGENT_SETUP, timeout=600)
         print("Running Claude Code…")
+        write_agent_env(client, name, {"ANTHROPIC_API_KEY": anthropic_key})
         result = exec_and_wait_sync(
             client,
             name,
-            ["sh", "-c", CLAUDE_CMD],
-            env={"ANTHROPIC_API_KEY": anthropic_key},
+            ["sh", "-c", run_as_agent(CLAUDE_CMD)],
             timeout=600,
         )
         if result.stdout:

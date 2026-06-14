@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 def test_counter_increments(base_url: str) -> None:
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        browser = playwright.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(base_url)
         assert page.locator("#title").inner_text() == "Counter"

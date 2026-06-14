@@ -25,12 +25,38 @@ exec_and_wait_sync(
     client, name, ["sh", "-c", "npm install -g @openai/codex"], timeout=600
 )
 
-# Run a prompt with Codex
+exec_and_wait_sync(
+    client,
+    name,
+    ["sh", "-c", "id -u agent >/dev/null 2>&1 || useradd -m -s /bin/bash agent"],
+    timeout=60,
+)
+
+# Write API keys to a file owned by agent — sudo does not reliably preserve env vars.
+exec_and_wait_sync(
+    client,
+    name,
+    [
+        "sh",
+        "-c",
+        "cat > /tmp/agent-env <<'EOF'\n"
+        "export CODEX_API_KEY='sk-...'\n"
+        "EOF\n"
+        "chmod 600 /tmp/agent-env && chown agent:agent /tmp/agent-env",
+    ],
+    timeout=60,
+)
+
 result = exec_and_wait_sync(
     client,
     name,
-    ["sh", "-c", "codex exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox 'Create a hello world index.html'"],
-    env={"OPENAI_API_KEY": "<your api key>"},
+    [
+        "sh",
+        "-c",
+        "sudo -u agent -H sh -c "
+        "\". /tmp/agent-env && cd ~ && codex exec --skip-git-repo-check "
+        "--dangerously-bypass-approvals-and-sandbox 'Create a hello world index.html'\"",
+    ],
     timeout=600,
 )
 print(result.stdout)
@@ -47,7 +73,7 @@ client.sandboxes.delete_sandbox(name)
 Set `ISLO_API_KEY` and `OPENAI_API_KEY` in `.env` (copy from `.env.example`):
 
 - `ISLO_API_KEY` — from [app.islo.dev/api-keys](https://app.islo.dev/api-keys)
-- `OPENAI_API_KEY` — from [OpenAI Platform](https://platform.openai.com/api-keys)
+- `OPENAI_API_KEY` — from [OpenAI Platform](https://platform.openai.com/api-keys). The example maps this to `CODEX_API_KEY` inside the computer (`codex exec` requires that name).
 
 **2. Install dependencies**
 
@@ -81,7 +107,7 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ISLO_API_KEY` | Yes | Islo API key |
-| `OPENAI_API_KEY` | Yes | OpenAI API key passed into the computer |
+| `OPENAI_API_KEY` | Yes | Your OpenAI API key; written as `CODEX_API_KEY` for `codex exec` |
 | `ISLO_BASE_URL` | No | Control-plane URL (default `https://api.islo.dev`) |
 
 ## Troubleshooting
@@ -89,6 +115,7 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 | Symptom | Fix |
 |---------|-----|
 | `codex: command not found` | Setup script failed — check stderr; ensure npm registry is reachable |
+| `401 Unauthorized: Missing bearer` | `codex exec` needs `CODEX_API_KEY`, not `OPENAI_API_KEY` — see `main.py` |
 | Auth errors | Verify `OPENAI_API_KEY` is set and valid |
 | Codex exits immediately | `--skip-git-repo-check` is included in the example command |
 

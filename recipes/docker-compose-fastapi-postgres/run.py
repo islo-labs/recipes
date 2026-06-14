@@ -20,6 +20,7 @@ RECIPE_ID = "docker-compose-fastapi-postgres"
 REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/recipes")
 REPO_REF = os.environ.get("ISLO_RECIPES_REF", "main")
 RECIPE_PATH = f"/workspace/islo-recipes/recipes/{RECIPE_ID}"
+POLL_INTERVAL = 0.5
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
@@ -31,6 +32,10 @@ def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> Non
         )
 
 
+def exec_sh(client: Islo, name: str, cmd: str, *, timeout: float = 10):
+    return exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
+
+
 @contextmanager
 def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
     client.sandboxes.create_sandbox(name=name, **kwargs)
@@ -38,7 +43,7 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             break
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
     try:
@@ -48,6 +53,15 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
             client.sandboxes.delete_sandbox(name)
         except ApiError:
             pass
+
+
+def wait_for_path(client: Islo, name: str, path: str, *, timeout: float = 300) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if exec_sh(client, name, f"test -d '{path}'").exit_code == 0:
+            return
+        time.sleep(POLL_INTERVAL)
+    raise TimeoutError(f"path {path!r} not found after git clone")
 
 
 def main() -> int:
@@ -65,8 +79,7 @@ def main() -> int:
         memory_mb=4096,
         disk_gb=15,
     ):
-        must_exec(client, name, f"test -d '{RECIPE_PATH}'", timeout=30)
-        must_exec(client, name, "docker compose version", timeout=30)
+        wait_for_path(client, name, RECIPE_PATH)
         must_exec(client, name, f"cd {RECIPE_PATH} && docker compose up -d --wait", timeout=600)
         must_exec(
             client,

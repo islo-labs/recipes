@@ -10,7 +10,7 @@ import uuid
 from contextlib import contextmanager
 
 from dotenv import load_dotenv
-from islo import GitSource, Islo, SetupScript
+from islo import GitSource, Islo
 from islo.core.api_error import ApiError
 from islo.custom.exec import exec_and_wait_sync
 
@@ -21,28 +21,20 @@ REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs
 REPO_REF = os.environ.get("ISLO_RECIPES_REF", "main")
 RECIPE_PATH = f"/workspace/islo-recipes/recipes/{RECIPE_ID}"
 VENV = "/tmp/recipe-venv"
+POLL_INTERVAL = 0.5
 
-PYTHON_BOOTSTRAP = SetupScript(
-    name="python-bootstrap",
-    script=(
-        "sudo rm -f /etc/apt/sources.list.d/docker.list && "
-        "sudo apt-get update -qq && "
-        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
-        "python3 python3-pip python3-venv"
-    ),
-)
-
-INSTALL_DEPS = SetupScript(
-    name="install-deps",
-    script=f"""
-set -euo pipefail
+# One exec: apt + venv + pip + Playwright browser/OS deps (fewer round trips).
+SETUP = f"""
+set -eu
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+  python3 python3-pip python3-venv curl
 cd {RECIPE_PATH}
 python3 -m venv {VENV}
-{VENV}/bin/pip install --quiet -r requirements.txt
-{VENV}/bin/python -m playwright install chromium
-sudo DEBIAN_FRONTEND=noninteractive {VENV}/bin/python -m playwright install-deps chromium
-""",
-)
+{VENV}/bin/pip install --disable-pip-version-check --no-cache-dir -q -r requirements.txt
+{VENV}/bin/python -m playwright install --with-deps chromium
+"""
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
@@ -54,43 +46,20 @@ def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> Non
         )
 
 
-def exec_sh(client: Islo, name: str, cmd: str, *, timeout: float = 15):
+def exec_sh(client: Islo, name: str, cmd: str, *, timeout: float = 10):
     return exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
-
-
-_SETUP_DONE = frozenset({"completed", "skipped"})
-
-
-def wait_for_setup(client: Islo, name: str, *, timeout: float = 900) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        steps = client.sandboxes.get_sandbox(name).setup_steps or []
-        if not steps:
-            return
-        if all(step.status in _SETUP_DONE for step in steps):
-            for step in steps:
-                if step.status == "failed":
-                    raise RuntimeError(
-                        f"setup step {step.name!r} failed:\n{step.stderr or step.stdout}"
-                    )
-            return
-        time.sleep(2)
-    raise TimeoutError(f"setup did not finish for {name!r}")
 
 
 @contextmanager
 def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
-    has_setup = bool(kwargs.get("setup_scripts"))
     client.sandboxes.create_sandbox(name=name, **kwargs)
     deadline = time.monotonic() + ready_timeout
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             break
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
-    if has_setup:
-        wait_for_setup(client, name)
     try:
         yield name
     finally:
@@ -100,12 +69,21 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
             pass
 
 
+def wait_for_path(client: Islo, name: str, path: str, *, timeout: float = 300) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if exec_sh(client, name, f"test -d '{path}'").exit_code == 0:
+            return
+        time.sleep(POLL_INTERVAL)
+    raise TimeoutError(f"path {path!r} not found after git clone")
+
+
 def wait_for_server(client: Islo, name: str, *, timeout: float = 60) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if exec_sh(client, name, "curl -sf http://127.0.0.1:8000/health >/dev/null").exit_code == 0:
             return
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     raise TimeoutError("FastAPI server did not become ready")
 
 
@@ -114,16 +92,20 @@ def main() -> int:
     name = f"recipes-playwright-{uuid.uuid4().hex[:8]}"
     sources = [GitSource(repo_url=REPO_URL, target_path="islo-recipes", branch=REPO_REF)]
 
+    print(f"Creating computer {name!r}…")
     with computer(
         client,
         name=name,
         sources=sources,
-        setup_scripts=[PYTHON_BOOTSTRAP, INSTALL_DEPS],
         vcpus=2,
         memory_mb=4096,
         disk_gb=15,
     ):
-        must_exec(client, name, f"test -d '{RECIPE_PATH}'", timeout=30)
+        print("Waiting for GitSource clone…")
+        wait_for_path(client, name, RECIPE_PATH)
+        print("Installing deps and Playwright…")
+        must_exec(client, name, SETUP, timeout=900)
+        print("Starting FastAPI…")
         must_exec(
             client,
             name,
@@ -132,7 +114,8 @@ def main() -> int:
             timeout=30,
         )
         wait_for_server(client, name)
-        must_exec(client, name, f"cd {RECIPE_PATH} && {VENV}/bin/python -m pytest e2e/ -v", timeout=300)
+        print("Running Playwright tests…")
+        must_exec(client, name, f"cd {RECIPE_PATH} && {VENV}/bin/python -m pytest e2e/ -q", timeout=300)
 
     print(f"PASS: {RECIPE_ID}")
     return 0

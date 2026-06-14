@@ -24,13 +24,37 @@ exec_and_wait_sync(
 exec_and_wait_sync(
     client, name, ["sh", "-c", "npm install -g @anthropic-ai/claude-code"], timeout=600
 )
+exec_and_wait_sync(
+    client,
+    name,
+    ["sh", "-c", "id -u agent >/dev/null 2>&1 || useradd -m -s /bin/bash agent"],
+    timeout=60,
+)
 
-# Run a prompt with Claude Code
+# Claude Code refuses --dangerously-skip-permissions as root; run as agent with a key file.
+exec_and_wait_sync(
+    client,
+    name,
+    [
+        "sh",
+        "-c",
+        "cat > /tmp/agent-env <<'EOF'\n"
+        "export ANTHROPIC_API_KEY='sk-ant-...'\n"
+        "EOF\n"
+        "chmod 600 /tmp/agent-env && chown agent:agent /tmp/agent-env",
+    ],
+    timeout=60,
+)
 result = exec_and_wait_sync(
     client,
     name,
-    ["sh", "-c", "echo 'Create a hello world index.html' | claude -p --dangerously-skip-permissions"],
-    env={"ANTHROPIC_API_KEY": "<your api key>"},
+    [
+        "sh",
+        "-c",
+        "sudo -u agent -H sh -c "
+        "\". /tmp/agent-env && cd ~ && echo 'Create a hello world index.html' | "
+        "claude -p --dangerously-skip-permissions\"",
+    ],
     timeout=600,
 )
 print(result.stdout)
@@ -88,6 +112,7 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 
 | Symptom | Fix |
 |---------|-----|
+| `--dangerously-skip-permissions cannot be used with root/sudo` | Run Claude Code as a non-root user (`sudo -u agent`); see `main.py` |
 | `claude: command not found` | Setup script failed — check stderr; ensure npm registry is reachable |
 | Auth errors | Verify `ANTHROPIC_API_KEY` is set and valid |
 | Computer not ready | Wait for setup scripts to finish before running Claude Code |

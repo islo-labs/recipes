@@ -49,6 +49,17 @@ uv sync --extra dev
 - Register new recipes as `recipes/<id>/` with the right layout (see below).
 - Keep each recipe self-contained — no shared library.
 
+## Performance (customer-facing latency)
+
+Each `exec_and_wait_sync` call is a control-plane round trip. Prefer:
+
+- **One setup shell script** per phase (apt + venv + pip, or apt + user + npm) instead of many small execs.
+- **Fast polling** (`0.5s`) when waiting for computer ready, Git clone, or HTTP health — not `2s`.
+- **Install flags**: pip `--disable-pip-version-check --no-cache-dir`; npm `--no-fund --no-audit --loglevel=error`; Playwright `install --with-deps chromium` (not separate `install` + `install-deps`).
+- **GitSource recipes**: poll until the recipe path exists before setup — don't fail-and-retry.
+
+Agent CLIs that forbid root bypass flags must run as a non-root user with credentials in a root-written env file (`/tmp/agent-env`), not `sudo --preserve-env`. For Codex, set `CODEX_API_KEY` (not `OPENAI_API_KEY`) in that file for `codex exec`.
+
 ## External docs
 
 - [Islo documentation](https://docs.islo.dev)

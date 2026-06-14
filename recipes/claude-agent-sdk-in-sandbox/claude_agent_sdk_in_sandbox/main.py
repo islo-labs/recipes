@@ -22,16 +22,17 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 AGENT_SCRIPT = PACKAGE_DIR / "agent.py"
 VENV = "/tmp/agent-venv"
 REMOTE_AGENT = "/tmp/claude_agent.py"
+POLL_INTERVAL = 0.5
 
-PYTHON_BOOTSTRAP = (
-    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
-    "sudo apt-get update -qq && "
-    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
-    "python3 python3-pip python3-venv"
-)
-INSTALL_AGENT_SDK = (
-    f"python3 -m venv {VENV} && {VENV}/bin/pip install -q claude-agent-sdk"
-)
+SETUP = f"""
+set -eu
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+  python3 python3-pip python3-venv
+python3 -m venv {VENV}
+{VENV}/bin/pip install --disable-pip-version-check --no-cache-dir -q claude-agent-sdk
+"""
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 600) -> None:
@@ -50,7 +51,7 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             break
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
     try:
@@ -79,8 +80,7 @@ def main() -> int:
 
     with computer(client, name=sandbox_name):
         print("Installing Python and Claude Agent SDK…")
-        must_exec(client, sandbox_name, PYTHON_BOOTSTRAP, timeout=600)
-        must_exec(client, sandbox_name, INSTALL_AGENT_SDK, timeout=600)
+        must_exec(client, sandbox_name, SETUP, timeout=600)
         upload_agent_script(client, sandbox_name)
         print("Running Claude Agent SDK…")
         result = exec_and_wait_sync(
