@@ -70,12 +70,11 @@ uv sync --extra dev
 
 **Live smoke** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
 
+GitSource recipes (`playwright`, `docker-compose-fastapi-postgres`) clone this repo inside the computer. `./scripts/smoke.sh` sets `ISLO_RECIPES_REF` to your **current git branch** automatically — push the branch first. Override with `ISLO_RECIPES_REF=main` after merge.
+
 ```bash
 export ISLO_API_KEY="..."
-chmod +x scripts/smoke.sh
-./scripts/smoke.sh sdk                    # SDK recipes only
-./scripts/smoke.sh agents                 # agent recipes
-./scripts/smoke.sh gateway-allowlist      # single recipe
+./scripts/smoke.sh all
 ```
 
 CI runs `./scripts/validate.sh` on every PR ([`validate.yml`](.github/workflows/validate.yml)). Live smoke runs on a schedule and via workflow dispatch ([`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml)).

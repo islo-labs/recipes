@@ -18,23 +18,35 @@ fi
 
 cd "$ROOT"
 
+# GitSource recipes clone this repo — use the current branch when ISLO_RECIPES_REF
+# is unset so local smoke matches your working tree (must be pushed to remote).
+if [[ -z "${ISLO_RECIPES_REF:-}" ]] && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
+  if [[ -n "$branch" ]]; then
+    export ISLO_RECIPES_REF="$branch"
+    echo "ISLO_RECIPES_REF=$ISLO_RECIPES_REF (current git branch)"
+  fi
+fi
+
 run_python_smoke() {
   local id="$1" entrypoint="$2" expect="$3"
+  local output exit_code
   echo "==> smoke: $id"
-  (
-    cd "recipes/$id"
-    output="$(uv run python "$entrypoint" 2>&1)" || {
-      echo "$output" >&2
-      echo "FAILED: $id (exit $?)" >&2
-      exit 1
-    }
-    if [[ "$output" != *"$expect"* ]]; then
-      echo "$output" >&2
-      echo "FAILED: $id (missing expected output: $expect)" >&2
-      exit 1
-    fi
-    echo "PASS: $id"
-  )
+  set +e
+  output="$(cd "recipes/$id" && uv run python "$entrypoint" 2>&1)"
+  exit_code=$?
+  set -e
+  if (( exit_code != 0 )); then
+    echo "$output" >&2
+    echo "FAILED: $id (exit $exit_code)" >&2
+    return 1
+  fi
+  if [[ "$output" != *"$expect"* ]]; then
+    echo "$output" >&2
+    echo "FAILED: $id (missing expected output: $expect)" >&2
+    return 1
+  fi
+  echo "PASS: $id"
 }
 
 env_ok() {
