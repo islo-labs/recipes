@@ -131,7 +131,6 @@ def main() -> int:
 
     try:
         wait_ready(client, name)
-        must_exec(client, name, "mount-s3 --version", timeout=60)
         must_exec(
             client,
             name,
