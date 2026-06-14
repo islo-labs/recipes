@@ -77,4 +77,3 @@ Your role needs S3 permissions on the bucket (`s3:ListBucket`, `s3:GetObject`, `
 ## Related recipes
 
 - [`gateway-allowlist`](../gateway-allowlist/) — host egress rules (different gateway use case)
-- [`custom-docker-image`](../) — see root README roadmap

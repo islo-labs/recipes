@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 
-from islo_recipes.computer import load_recipe_env
+from recipekit.computer import load_recipe_env
 
 DATASET = os.environ.get("HARBOR_DATASET", "terminal-bench@2.0")
 AGENT = os.environ.get("HARBOR_AGENT", "oracle")

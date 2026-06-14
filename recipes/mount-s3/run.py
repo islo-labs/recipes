@@ -8,7 +8,7 @@ import os
 import sys
 import uuid
 
-from islo_recipes.computer import client_from_env, delete_computer, must_exec
+from recipekit.computer import client_from_env, delete_computer, must_exec
 
 RECIPE_ID = "mount-s3"
 GATEWAY_NAME = "recipes-s3-rw"
@@ -80,7 +80,7 @@ def ensure_gateway(client, cloud_role):
 
 
 def main() -> int:
-    from islo_recipes.computer import load_recipe_env
+    from recipekit.computer import load_recipe_env
 
     load_recipe_env()
     client = client_from_env()
@@ -105,7 +105,7 @@ def main() -> int:
     )
 
     try:
-        from islo_recipes.computer import wait_ready
+        from recipekit.computer import wait_ready
 
         wait_ready(client, computer_name, timeout=180)
         must_exec(client, computer_name, "mount-s3 --version", timeout=60)

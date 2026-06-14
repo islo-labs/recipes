@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 import uuid
 
-from islo_recipes.computer import (
+from recipekit.computer import (
     DEBIAN_APT_GATEWAY_RULES,
     bootstrap_python,
     client_from_env,

@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 
-from islo_recipes.computer import load_recipe_env
+from recipekit.computer import load_recipe_env
 
 RECIPE_ID = "harbor-evals"
 

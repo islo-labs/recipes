@@ -4,10 +4,6 @@ Customer-facing, copy-paste examples for building on [Islo](https://islo.dev). E
 
 This repository is optimized for **AI coding agents** and human developers alike. Read [`AGENTS.md`](AGENTS.md) first if you are an agent.
 
-## Terminology
-
-Customer-facing docs use **computer**. The Islo Python SDK still uses `sandbox` identifiers (`create_sandbox`, `delete_sandbox`) — recipe code keeps those names.
-
 ## Quick start
 
 ```bash
@@ -78,17 +74,6 @@ Structure checks run on every pull request. Live smoke tests run nightly — see
 ## Add a recipe
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## Roadmap
-
-| Priority | Recipe |
-|----------|--------|
-| P1 | `computer-lifecycle` — create, exec, stop, delete |
-| P1 | `git-sources-setup` — clone repo + setup scripts at init |
-| P1 | `custom-docker-image` — build and use any OCI image |
-| P2 | `snapshots`, `ssh-development`, `gateway-block-cheat-sources` |
-| P2 | `docker-compose-multi-service` |
-| P3 | `ci-github-actions` — reusable GitHub Actions workflow |
 
 ## Links
 

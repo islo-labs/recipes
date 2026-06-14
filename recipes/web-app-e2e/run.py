@@ -9,24 +9,29 @@ import uuid
 
 from islo import SetupScript
 
-from islo_recipes.computer import (
+from recipekit.computer import (
     PYTHON_BOOTSTRAP_SCRIPT,
+    assert_repo_cloned,
     assert_setup_steps,
     client_from_env,
     computer,
     exec_sh,
     git_source,
     must_exec,
+    recipe_dir,
 )
 
 RECIPE_ID = "web-app-e2e"
-RECIPE_DIR = "/workspace/islo-recipes/recipes/web-app-e2e"
+
+# Bookworm marks system Python as externally managed — use a venv for pip deps.
+VENV = "/tmp/recipe-venv"
 
 SETUP_DEPS = f"""
 set -euo pipefail
-cd {RECIPE_DIR}
-python3 -m pip install --quiet -r requirements.txt
-python3 -m playwright install chromium
+cd {recipe_dir(RECIPE_ID)}
+python3 -m venv {VENV}
+{VENV}/bin/pip install --quiet -r requirements.txt
+{VENV}/bin/python -m playwright install chromium
 """
 
 
@@ -59,11 +64,13 @@ def main() -> int:
         disk_gb=15,
         ready_timeout=300,
     ) as name:
+        assert_repo_cloned(client, name, recipe_id=RECIPE_ID)
         assert_setup_steps(client, name, "python-bootstrap", "install-deps")
+        recipe_path = recipe_dir(RECIPE_ID)
         must_exec(
             client,
             name,
-            f"cd {RECIPE_DIR} && nohup python3 -m uvicorn app.main:app "
+            f"cd {recipe_path} && nohup {VENV}/bin/python -m uvicorn app.main:app "
             f"--host 127.0.0.1 --port 8000 > /tmp/web-app.log 2>&1 &",
             timeout=30,
         )
@@ -71,7 +78,7 @@ def main() -> int:
         must_exec(
             client,
             name,
-            f"cd {RECIPE_DIR} && python3 -m pytest e2e/ -v",
+            f"cd {recipe_path} && {VENV}/bin/python -m pytest e2e/ -v",
             timeout=300,
         )
 

@@ -14,6 +14,8 @@ from islo.custom.exec import ExecResult, exec_and_wait_sync
 
 _READY_STATUSES = frozenset({"running"})
 DEFAULT_REPO_URL = "https://github.com/islo-labs/islo-recipes"
+DEFAULT_TARGET_PATH = "islo-recipes"
+CLONE_SETUP_STEP = "Clone repositories"
 
 # islo-runner ships a Docker apt source; disable it so apt update only hits Debian
 # mirrors allowed by the gateway profile.
@@ -52,8 +54,23 @@ def recipes_ref() -> str | None:
     return os.environ.get("ISLO_RECIPES_REF") or None
 
 
-def git_source(*, target_path: str = "islo-recipes") -> GitSource:
-    kwargs: dict[str, str] = {"repo_url": recipes_repo_url(), "target_path": target_path}
+def recipes_target_path() -> str:
+    return os.environ.get("ISLO_RECIPES_TARGET_PATH", DEFAULT_TARGET_PATH)
+
+
+def recipes_workdir() -> str:
+    return f"/workspace/{recipes_target_path()}"
+
+
+def recipe_dir(recipe_id: str) -> str:
+    return f"{recipes_workdir()}/recipes/{recipe_id}"
+
+
+def git_source(*, target_path: str | None = None) -> GitSource:
+    kwargs: dict[str, str] = {
+        "repo_url": recipes_repo_url(),
+        "target_path": target_path or recipes_target_path(),
+    }
     ref = recipes_ref()
     if ref:
         kwargs["branch"] = ref
@@ -127,6 +144,13 @@ def assert_setup_steps(client: Islo, computer_name: str, *step_names: str) -> No
             )
 
 
+def assert_repo_cloned(client: Islo, computer_name: str, *, recipe_id: str | None = None) -> None:
+    """Verify GitSource clone succeeded and expected paths exist."""
+    assert_setup_steps(client, computer_name, CLONE_SETUP_STEP)
+    path = recipe_dir(recipe_id) if recipe_id else recipes_workdir()
+    must_exec(client, computer_name, f"test -d '{path}'", timeout=30)
+
+
 def delete_computer(client: Islo, computer_name: str) -> None:
     try:
         client.sandboxes.delete_sandbox(computer_name)
@@ -143,7 +167,7 @@ def computer(
     ready_timeout: float = 180.0,
     **create_kwargs,
 ) -> Iterator[str]:
-    """Create an Islo computer (SDK: sandbox) and delete it on exit."""
+    """Create an Islo computer and delete it on exit."""
     kwargs = dict(create_kwargs)
     if name is not None:
         kwargs["name"] = name
