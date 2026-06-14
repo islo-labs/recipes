@@ -17,7 +17,7 @@ from islo.custom.exec import exec_and_wait_sync
 load_dotenv()
 
 RECIPE_ID = "docker-compose-fastapi-postgres"
-REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/islo-recipes")
+REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/recipes")
 REPO_REF = os.environ.get("ISLO_RECIPES_REF", "main")
 RECIPE_PATH = f"/workspace/islo-recipes/recipes/{RECIPE_ID}"
 

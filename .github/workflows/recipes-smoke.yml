@@ -14,8 +14,7 @@ on:
           - all
           - gateway-allowlist
           - docker-compose-fastapi-postgres
-          - web-app-e2e
-          - harbor-evals
+          - playwright
           - mount-s3
 
 concurrency:
@@ -40,10 +39,6 @@ jobs:
 
       - uses: astral-sh/setup-uv@v3
 
-      - name: Install Harbor (harbor-evals)
-        if: github.event.inputs.recipe == 'harbor-evals' || github.event.inputs.recipe == 'all' || github.event_name == 'schedule'
-        run: uv tool install 'harbor[islo]'
-
       - name: Run gateway-allowlist
         if: |
           github.event_name == 'schedule' ||
@@ -58,21 +53,12 @@ jobs:
           github.event.inputs.recipe == 'docker-compose-fastapi-postgres'
         run: cd recipes/docker-compose-fastapi-postgres && uv sync && uv run python run.py
 
-      - name: Run web-app-e2e
+      - name: Run playwright
         if: |
           github.event_name == 'schedule' ||
           github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'web-app-e2e'
-        run: cd recipes/web-app-e2e && uv sync && uv run python run.py
-
-      - name: Run harbor-evals
-        if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'harbor-evals'
-        env:
-          ISLO_API_URL: ${{ vars.ISLO_BASE_URL }}
-        run: cd recipes/harbor-evals && uv sync && uv run python run.py
+          github.event.inputs.recipe == 'playwright'
+        run: cd recipes/playwright && uv sync && uv run python run.py
 
       - name: Run mount-s3 (manual only)
         if: github.event.inputs.recipe == 'mount-s3'

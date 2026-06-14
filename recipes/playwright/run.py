@@ -16,8 +16,8 @@ from islo.custom.exec import exec_and_wait_sync
 
 load_dotenv()
 
-RECIPE_ID = "web-app-e2e"
-REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/islo-recipes")
+RECIPE_ID = "playwright"
+REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/recipes")
 REPO_REF = os.environ.get("ISLO_RECIPES_REF", "main")
 RECIPE_PATH = f"/workspace/islo-recipes/recipes/{RECIPE_ID}"
 VENV = "/tmp/recipe-venv"
@@ -88,7 +88,7 @@ def wait_for_server(client: Islo, name: str, *, timeout: float = 60) -> None:
 
 def main() -> int:
     client = Islo()
-    name = f"recipes-e2e-{uuid.uuid4().hex[:8]}"
+    name = f"recipes-playwright-{uuid.uuid4().hex[:8]}"
     sources = [GitSource(repo_url=REPO_URL, target_path="islo-recipes", branch=REPO_REF)]
 
     with computer(

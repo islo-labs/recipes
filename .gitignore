@@ -11,3 +11,4 @@ build/
 test-results/
 playwright-report/
 jobs/
+scripts/

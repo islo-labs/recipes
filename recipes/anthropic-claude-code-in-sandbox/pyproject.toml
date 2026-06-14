@@ -1,6 +1,7 @@
 [project]
-name = "recipe-template"
+name = "anthropic-claude-code-in-sandbox"
 version = "0.1.0"
+description = "Run Anthropic Claude Code in an Islo sandbox"
 requires-python = ">=3.10"
 dependencies = [
   "islo>=0.3.1",

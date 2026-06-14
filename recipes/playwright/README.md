@@ -1,4 +1,4 @@
-# Web app browser E2E
+# Playwright
 
 Run Playwright browser tests against a small FastAPI app on an Islo computer.
 
@@ -32,7 +32,7 @@ Show how to run your application's browser E2E tests on Islo: clone source via G
 ### On Islo (orchestrated)
 
 ```bash
-cd islo-recipes/recipes/web-app-e2e
+cd recipes/playwright
 uv sync
 cp .env.example .env
 # edit .env
@@ -45,7 +45,7 @@ uv run python run.py
 Install deps and Playwright, then run tests against a locally started server:
 
 ```bash
-cd islo-recipes/recipes/web-app-e2e
+cd recipes/playwright
 uv sync --extra app
 uv run playwright install chromium
 uv run playwright install-deps chromium
@@ -56,7 +56,7 @@ uv run pytest e2e/ -v
 ## Verify success
 
 ```
-PASS: web-app-e2e
+PASS: playwright
 ```
 
 Pytest output should show one passing test (`test_counter_increments`).
