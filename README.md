@@ -61,28 +61,28 @@ CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent 
 
 ## Testing
 
-**Local structure tests** (no API keys):
+**Local validation** (no API keys):
 
 ```bash
 uv sync --extra dev
-uv run pytest tests/test_structure.py -v
-uv run ruff check recipes tests
+./scripts/validate.sh
 ```
 
-**Live smoke tests** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
+**Live smoke** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
 
 ```bash
 export ISLO_API_KEY="..."
-uv run pytest tests/test_smoke_live.py -v -m live          # all live tests
-uv run pytest tests/test_smoke_live.py -v -m "not live_agent and not live_aws"  # SDK only
-uv run pytest tests/test_smoke_live.py -v -k gateway-allowlist  # single recipe
+chmod +x scripts/smoke.sh
+./scripts/smoke.sh sdk                    # SDK recipes only
+./scripts/smoke.sh agents                 # agent recipes
+./scripts/smoke.sh gateway-allowlist      # single recipe
 ```
 
-CI runs structure tests on every PR ([`validate.yml`](.github/workflows/validate.yml)). Live smoke runs on a schedule and via workflow dispatch ([`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml)).
+CI runs `./scripts/validate.sh` on every PR ([`validate.yml`](.github/workflows/validate.yml)). Live smoke runs on a schedule and via workflow dispatch ([`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml)).
 
 ## Add a recipe
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). Register new recipes in [`tests/recipes.yaml`](tests/recipes.yaml).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Register new recipes in [`recipes.yaml`](recipes.yaml).
 
 ## Links
 

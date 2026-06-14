@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       recipe:
-        description: Recipe id, group (sdk/agents/all), or mount-s3
+        description: Recipe id, group (sdk/agents/all), or single recipe
         required: true
         default: sdk
         type: choice
@@ -59,17 +59,5 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ]; then
             SELECTION="sdk"
           fi
-          case "$SELECTION" in
-            sdk)
-              uv run pytest tests/test_smoke_live.py -v -m "live and not live_aws and not live_agent"
-              ;;
-            agents)
-              uv run pytest tests/test_smoke_live.py -v -m live_agent
-              ;;
-            all)
-              uv run pytest tests/test_smoke_live.py -v -m live
-              ;;
-            *)
-              uv run pytest tests/test_smoke_live.py -v -k "$SELECTION"
-              ;;
-          esac
+          chmod +x scripts/smoke.sh
+          ./scripts/smoke.sh "$SELECTION"
