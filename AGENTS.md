@@ -12,7 +12,6 @@ Recipe registry: discovered from `recipes/<id>/` folder conventions (see [`CONTR
 |-------|------------|----------------|
 | **SDK** | `run.py` (Python) | `PASS: <recipe-id>` |
 | **Agent** | `*/main.py` | `Done.` in stdout |
-| **Automation** | workflow YAML in `examples/` | validate script only |
 
 ## How to run a Python SDK recipe
 
@@ -54,4 +53,3 @@ uv sync --extra dev
 
 - [Islo documentation](https://docs.islo.dev)
 - [Agent integration](https://docs.islo.dev/cli/agent-integration)
-- [islo-reviewer](https://github.com/islo-labs/islo-reviewer)

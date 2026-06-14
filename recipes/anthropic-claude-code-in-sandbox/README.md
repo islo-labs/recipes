@@ -7,20 +7,16 @@ This example shows how to run Anthropic's [Claude Code](https://github.com/anthr
 Create a computer, install Claude Code via a setup script, and run a prompt:
 
 ```python
-from islo import Islo, SetupScript
+from islo import Islo
 from islo.custom.exec import exec_and_wait_sync
 
 client = Islo()
 name = "my-claude-computer"
 
-client.sandboxes.create_sandbox(
-    name=name,
-    setup_scripts=[
-        SetupScript(
-            name="install-claude-code",
-            script="npm install -g @anthropic-ai/claude-code",
-        ),
-    ],
+client.sandboxes.create_sandbox(name=name)
+
+exec_and_wait_sync(
+    client, name, ["sh", "-c", "npm install -g @anthropic-ai/claude-code"], timeout=600
 )
 
 # Run a prompt with Claude Code
@@ -92,5 +88,5 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 
 ## Related recipes
 
-- [`claude-agent-sdk-in-sandbox`](../claude-agent-sdk-in-sandbox/) — Claude Agent SDK (`query()`)
-- [`islo-reviewer`](../islo-reviewer/) — PR review GitHub Action
+- [`openai-codex-in-sandbox`](../openai-codex-in-sandbox/) — OpenAI Codex on Islo
+- [`playwright`](../playwright/) — SDK recipe with GitSource + browser tests

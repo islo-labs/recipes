@@ -7,20 +7,16 @@ This example shows how to run OpenAI's [Codex](https://github.com/openai/codex) 
 Create a computer, install Codex via a setup script, and run a prompt:
 
 ```python
-from islo import Islo, SetupScript
+from islo import Islo
 from islo.custom.exec import exec_and_wait_sync
 
 client = Islo()
 name = "my-codex-computer"
 
-client.sandboxes.create_sandbox(
-    name=name,
-    setup_scripts=[
-        SetupScript(
-            name="install-codex",
-            script="npm install -g @openai/codex",
-        ),
-    ],
+client.sandboxes.create_sandbox(name=name)
+
+exec_and_wait_sync(
+    client, name, ["sh", "-c", "npm install -g @openai/codex"], timeout=600
 )
 
 # Run a prompt with Codex

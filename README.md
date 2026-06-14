@@ -53,12 +53,6 @@ Run coding agents inside an Islo computer via the Python SDK.
 
 CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent codex`. See [agent integration](https://docs.islo.dev/cli/agent-integration).
 
-## Automation recipes
-
-| Recipe | Description |
-|--------|-------------|
-| [`islo-reviewer`](recipes/islo-reviewer/) | PR review and CI babysit with [islo-reviewer](https://github.com/islo-labs/islo-reviewer) |
-
 ## Testing
 
 **Local validation** (no API keys):

@@ -10,7 +10,6 @@ There is **no central manifest**. Recipes are discovered from folder layout unde
 |------|-------------------|
 | **SDK** | `run.py` at recipe root (+ `pyproject.toml` for Python) |
 | **Agent** | `*/main.py` orchestrator, no root `run.py` |
-| **Automation** | `examples/*.yml`, no `run.py` |
 
 Set `lang` implicitly: `pyproject.toml` → Python, `go.mod` → Go, `package.json` → TypeScript.
 
@@ -32,14 +31,6 @@ Set `lang` implicitly: `pyproject.toml` → Python, `go.mod` → Go, `package.js
 | `.env.example` | API keys (used by smoke tests to know required env) |
 | `pyproject.toml`, `uv.lock` | Orchestrator deps |
 | `<package>/main.py` | Runnable entrypoint |
-
-## Automation recipes
-
-| File | Purpose |
-|------|---------|
-| `README.md` | Quick start + copy-paste steps |
-| `.env.example` | GitHub secrets documentation |
-| `examples/*.yml` | Workflow files to copy |
 
 ## README sections — SDK recipes
 

@@ -10,21 +10,26 @@ import uuid
 from contextlib import contextmanager
 
 from dotenv import load_dotenv
-from islo import Islo, SetupScript
+from islo import Islo
 from islo.core.api_error import ApiError
 from islo.custom.exec import exec_and_wait_sync
 
 load_dotenv()
 
-INSTALL_CLAUDE = SetupScript(
-    name="install-claude-code",
-    script="npm install -g @anthropic-ai/claude-code",
-)
-
+INSTALL_CLAUDE = "npm install -g @anthropic-ai/claude-code"
 PROMPT = "Create a hello world index.html"
 CLAUDE_CMD = (
     f"echo {PROMPT!r} | claude -p --dangerously-skip-permissions"
 )
+
+
+def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 600) -> None:
+    result = exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
+    if result.exit_code != 0:
+        raise RuntimeError(
+            f"command failed (exit={result.exit_code})\n  cmd: {cmd!r}\n"
+            f"  stdout: {result.stdout[-2000:]}\n  stderr: {result.stderr[-2000:]}"
+        )
 
 
 @contextmanager
@@ -56,7 +61,9 @@ def main() -> int:
     name = f"recipes-claude-{uuid.uuid4().hex[:8]}"
     print(f"Creating computer {name!r}…")
 
-    with computer(client, name=name, setup_scripts=[INSTALL_CLAUDE]):
+    with computer(client, name=name):
+        print("Installing Claude Code…")
+        must_exec(client, name, INSTALL_CLAUDE, timeout=600)
         print("Running Claude Code…")
         result = exec_and_wait_sync(
             client,

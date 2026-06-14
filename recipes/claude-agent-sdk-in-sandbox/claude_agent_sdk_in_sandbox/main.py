@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from islo import Islo, SetupScript
+from islo import Islo
 from islo.core.api_error import ApiError
 from islo.custom.exec import exec_and_wait_sync
 
@@ -23,13 +23,24 @@ AGENT_SCRIPT = PACKAGE_DIR / "agent.py"
 VENV = "/tmp/agent-venv"
 REMOTE_AGENT = "/tmp/claude_agent.py"
 
-INSTALL_AGENT_SDK = SetupScript(
-    name="install-claude-agent-sdk",
-    script=(
-        "python3 -m venv /tmp/agent-venv && "
-        "/tmp/agent-venv/bin/pip install -q claude-agent-sdk"
-    ),
+PYTHON_BOOTSTRAP = (
+    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
+    "sudo apt-get update -qq && "
+    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
+    "python3 python3-pip python3-venv"
 )
+INSTALL_AGENT_SDK = (
+    f"python3 -m venv {VENV} && {VENV}/bin/pip install -q claude-agent-sdk"
+)
+
+
+def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 600) -> None:
+    result = exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
+    if result.exit_code != 0:
+        raise RuntimeError(
+            f"command failed (exit={result.exit_code})\n  cmd: {cmd!r}\n"
+            f"  stdout: {result.stdout[-2000:]}\n  stderr: {result.stderr[-2000:]}"
+        )
 
 
 @contextmanager
@@ -53,10 +64,7 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
 
 def upload_agent_script(client: Islo, name: str) -> None:
     encoded = base64.b64encode(AGENT_SCRIPT.read_bytes()).decode()
-    cmd = f"echo {encoded} | base64 -d > {REMOTE_AGENT}"
-    result = exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=60)
-    if result.exit_code != 0:
-        raise RuntimeError(f"failed to upload agent script: {result.stderr}")
+    must_exec(client, name, f"echo {encoded} | base64 -d > {REMOTE_AGENT}", timeout=60)
 
 
 def main() -> int:
@@ -69,7 +77,10 @@ def main() -> int:
     sandbox_name = f"recipes-agent-sdk-{uuid.uuid4().hex[:8]}"
     print(f"Creating computer {sandbox_name!r}…")
 
-    with computer(client, name=sandbox_name, setup_scripts=[INSTALL_AGENT_SDK]):
+    with computer(client, name=sandbox_name):
+        print("Installing Python and Claude Agent SDK…")
+        must_exec(client, sandbox_name, PYTHON_BOOTSTRAP, timeout=600)
+        must_exec(client, sandbox_name, INSTALL_AGENT_SDK, timeout=600)
         upload_agent_script(client, sandbox_name)
         print("Running Claude Agent SDK…")
         result = exec_and_wait_sync(

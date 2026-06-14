@@ -7,23 +7,19 @@ Build a programmatic agent with Anthropic's [Claude Agent SDK](https://code.clau
 Create a computer, install the Agent SDK, and run an agent script:
 
 ```python
-from islo import Islo, SetupScript
+from islo import Islo
 from islo.custom.exec import exec_and_wait_sync
 
 client = Islo()
 name = "my-agent-computer"
 
-client.sandboxes.create_sandbox(
-    name=name,
-    setup_scripts=[
-        SetupScript(
-            name="install-claude-agent-sdk",
-            script=(
-                "python3 -m venv /tmp/agent-venv && "
-                "/tmp/agent-venv/bin/pip install -q claude-agent-sdk"
-            ),
-        ),
-    ],
+client.sandboxes.create_sandbox(name=name)
+
+exec_and_wait_sync(
+    client,
+    name,
+    ["sh", "-c", "python3 -m venv /tmp/agent-venv && /tmp/agent-venv/bin/pip install -q claude-agent-sdk"],
+    timeout=600,
 )
 
 result = exec_and_wait_sync(
@@ -89,4 +85,3 @@ For interactive Claude Code sessions (CLI, not Agent SDK), see [`anthropic-claud
 ## Related recipes
 
 - [`anthropic-claude-code-in-sandbox`](../anthropic-claude-code-in-sandbox/) — Claude Code CLI in a computer
-- [`islo-reviewer`](../islo-reviewer/) — PR review GitHub Action using the Agent SDK

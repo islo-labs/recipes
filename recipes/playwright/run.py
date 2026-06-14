@@ -58,8 +58,29 @@ def exec_sh(client: Islo, name: str, cmd: str, *, timeout: float = 15):
     return exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
 
 
+_SETUP_DONE = frozenset({"completed", "skipped"})
+
+
+def wait_for_setup(client: Islo, name: str, *, timeout: float = 900) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        steps = client.sandboxes.get_sandbox(name).setup_steps or []
+        if not steps:
+            return
+        if all(step.status in _SETUP_DONE for step in steps):
+            for step in steps:
+                if step.status == "failed":
+                    raise RuntimeError(
+                        f"setup step {step.name!r} failed:\n{step.stderr or step.stdout}"
+                    )
+            return
+        time.sleep(2)
+    raise TimeoutError(f"setup did not finish for {name!r}")
+
+
 @contextmanager
 def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
+    has_setup = bool(kwargs.get("setup_scripts"))
     client.sandboxes.create_sandbox(name=name, **kwargs)
     deadline = time.monotonic() + ready_timeout
     while time.monotonic() < deadline:
@@ -68,6 +89,8 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
         time.sleep(2)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
+    if has_setup:
+        wait_for_setup(client, name)
     try:
         yield name
     finally:
