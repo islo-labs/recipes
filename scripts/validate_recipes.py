@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate recipe structure from recipes.yaml — no pytest, language-aware."""
+"""Validate recipe folders — conventions only, no central manifest."""
 
 from __future__ import annotations
 
@@ -8,110 +8,66 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    print("Install dev deps: uv sync --extra dev", file=sys.stderr)
-    raise
+import yaml
+
+from discover_recipes import RECIPES_DIR, discover_recipes, readme_sections, required_files
 
 ROOT = Path(__file__).resolve().parent.parent
-RECIPES_DIR = ROOT / "recipes"
-MANIFEST = ROOT / "recipes.yaml"
-
-TYPE_FILES: dict[str, tuple[str, ...]] = {
-    "sdk": ("README.md", ".env.example", "pyproject.toml", "uv.lock"),
-    "agent": ("README.md", ".env.example", "pyproject.toml", "uv.lock"),
-    "automation": ("README.md", ".env.example"),
-}
-
-TYPE_README: dict[str, tuple[str, ...]] = {
-    "sdk": ("## Goal", "## Quick start", "## Verify success"),
-    "agent": ("## How to create", "## How to run example"),
-    "automation": ("## Quick start",),
-}
-
-SDK_ENTRYPOINTS: dict[str, str] = {
-    "python": "run.py",
-    "go": "main.go",
-    "typescript": "src/index.ts",
-}
-
-
-def load_manifest() -> list[dict]:
-    data = yaml.safe_load(MANIFEST.read_text())
-    return data["recipes"]
 
 
 def err(msg: str) -> None:
     print(f"  - {msg}", file=sys.stderr)
 
 
-def validate_manifest_disk(entries: list[dict]) -> list[str]:
+def validate_recipe(recipe) -> list[str]:
     errors: list[str] = []
-    manifest_ids = {e["id"] for e in entries}
-    disk_ids = {p.name for p in RECIPES_DIR.iterdir() if p.is_dir()}
-    for missing in sorted(manifest_ids - disk_ids):
-        errors.append(f"recipes.yaml entry {missing!r} has no recipes/{missing}/ folder")
-    for extra in sorted(disk_ids - manifest_ids):
-        errors.append(f"recipes/{extra}/ exists but is missing from recipes.yaml")
-    return errors
+    directory = RECIPES_DIR / recipe.id
 
-
-def validate_entry(entry: dict) -> list[str]:
-    errors: list[str] = []
-    recipe_id = entry["id"]
-    recipe_type = entry["type"]
-    directory = RECIPES_DIR / recipe_id
-    lang = entry.get("lang", "python")
-
-    if recipe_type not in TYPE_FILES:
-        return [f"recipes/{recipe_id}: unknown type {recipe_type!r}"]
-
-    for filename in TYPE_FILES[recipe_type]:
+    for filename in required_files(recipe.type):
         if not (directory / filename).is_file():
-            errors.append(f"recipes/{recipe_id}/ missing {filename}")
+            errors.append(f"recipes/{recipe.id}/ missing {filename}")
 
     readme = directory / "README.md"
     if readme.is_file():
         text = readme.read_text()
-        for section in TYPE_README[recipe_type]:
+        for section in readme_sections(recipe.type):
             if section not in text:
-                errors.append(f"recipes/{recipe_id}/README.md missing {section}")
+                errors.append(f"recipes/{recipe.id}/README.md missing {section}")
 
-    if recipe_type == "sdk":
-        expected = SDK_ENTRYPOINTS.get(lang, entry.get("entrypoint"))
-        entrypoint = entry.get("entrypoint", expected)
-        if lang == "python" and entrypoint != "run.py":
-            errors.append(f"recipes/{recipe_id}: python SDK entrypoint must be run.py")
-        if not (directory / entrypoint).is_file():
-            errors.append(f"recipes/{recipe_id}/ missing entrypoint {entrypoint}")
+    if recipe.type == "sdk":
+        if recipe.lang == "python" and not (directory / "run.py").is_file():
+            errors.append(f"recipes/{recipe.id}/ missing run.py")
+        elif recipe.lang == "go" and not (directory / "go.mod").is_file():
+            errors.append(f"recipes/{recipe.id}/ missing go.mod")
+        elif recipe.lang == "typescript" and not (directory / "package.json").is_file():
+            errors.append(f"recipes/{recipe.id}/ missing package.json")
 
-    elif recipe_type == "agent":
-        entrypoint = entry["entrypoint"]
-        if not (directory / entrypoint).is_file():
-            errors.append(f"recipes/{recipe_id}/ missing entrypoint {entrypoint}")
+    elif recipe.type == "agent":
+        if not (directory / recipe.entrypoint).is_file():
+            errors.append(f"recipes/{recipe.id}/ missing entrypoint {recipe.entrypoint}")
 
-    elif recipe_type == "automation":
-        for rel in entry.get("workflow_examples", []):
-            if not (directory / rel).is_file():
-                errors.append(f"recipes/{recipe_id}/ missing {rel}")
-            else:
-                yaml.safe_load((directory / rel).read_text())
-        review = entry.get("review_example")
-        if review and not (directory / review).is_file():
-            errors.append(f"recipes/{recipe_id}/ missing {review}")
+    elif recipe.type == "automation":
+        workflows = sorted(directory.glob("examples/*.yml")) + sorted(
+            directory.glob("examples/*.yaml")
+        )
+        if not workflows:
+            errors.append(f"recipes/{recipe.id}/ missing examples/*.yml")
+        for wf in workflows:
+            yaml.safe_load(wf.read_text())
 
-    if lang == "python" and recipe_type in ("sdk", "agent"):
-        py_files = []
-        if recipe_type == "sdk":
-            py_files.append(directory / entry.get("entrypoint", "run.py"))
+    if recipe.lang == "python" and recipe.type in ("sdk", "agent"):
+        py_files: list[Path] = []
+        if recipe.type == "sdk":
+            py_files.append(directory / "run.py")
         else:
-            ep = directory / entry["entrypoint"]
+            ep = directory / recipe.entrypoint
             py_files.append(ep)
             agent_py = ep.parent / "agent.py"
             if agent_py.is_file():
                 py_files.append(agent_py)
         for path in py_files:
+            if not path.is_file():
+                continue
             try:
                 ast.parse(path.read_text(), filename=str(path))
             except SyntaxError as exc:
@@ -126,20 +82,20 @@ def validate_entry(entry: dict) -> list[str]:
                 timeout=180,
             )
             if result.returncode != 0:
-                errors.append(f"recipes/{recipe_id}: uv sync failed:\n{result.stderr.strip()}")
+                errors.append(f"recipes/{recipe.id}: uv sync failed:\n{result.stderr.strip()}")
 
     return errors
 
 
 def main() -> int:
-    if not MANIFEST.is_file():
-        print(f"Missing {MANIFEST}", file=sys.stderr)
+    recipes = discover_recipes()
+    if not recipes:
+        print("No recipes found under recipes/", file=sys.stderr)
         return 1
 
-    entries = load_manifest()
-    errors = validate_manifest_disk(entries)
-    for entry in entries:
-        errors.extend(validate_entry(entry))
+    errors: list[str] = []
+    for recipe in recipes:
+        errors.extend(validate_recipe(recipe))
 
     if errors:
         print("Recipe validation failed:", file=sys.stderr)
@@ -147,7 +103,7 @@ def main() -> int:
             err(msg)
         return 1
 
-    print(f"OK: {len(entries)} recipes validated")
+    print(f"OK: {len(recipes)} recipes validated")
     return 0
 
 

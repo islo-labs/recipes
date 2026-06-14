@@ -82,7 +82,7 @@ CI runs `./scripts/validate.sh` on every PR ([`validate.yml`](.github/workflows/
 
 ## Add a recipe
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). Register new recipes in [`recipes.yaml`](recipes.yaml).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Links
 

@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository.
 
 A public cookbook of **Islo examples** under `recipes/<id>/`. Multi-language (`python` today; `go` and `typescript` planned). This is **not** the Islo SDK source.
 
-Recipe registry: [`recipes.yaml`](recipes.yaml)
+Recipe registry: discovered from `recipes/<id>/` folder conventions (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
 | Style | Entrypoint | Success signal |
 |-------|------------|----------------|
@@ -47,7 +47,7 @@ uv sync --extra dev
 
 - Never commit `.env` files or API keys.
 - Never add local absolute paths (`/Users/...`) to customer-facing files.
-- Register new recipes in `recipes.yaml`.
+- Register new recipes as `recipes/<id>/` with the right layout (see below).
 - Keep each recipe self-contained — no shared library.
 
 ## External docs

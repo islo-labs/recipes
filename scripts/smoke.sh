@@ -90,7 +90,7 @@ while IFS=$'\t' read -r id type live entrypoint expect lang env_required; do
   if ! run_python_smoke "$id" "$entrypoint" "$expect"; then
     ((FAILURES++)) || true
   fi
-done < <(uv run python "$ROOT/scripts/smoke_manifest.py")
+done < <(PYTHONPATH=scripts uv run python "$ROOT/scripts/smoke_manifest.py")
 
 if (( FAILURES > 0 )); then
   echo "$FAILURES recipe(s) failed" >&2
