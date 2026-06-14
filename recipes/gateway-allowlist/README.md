@@ -27,7 +27,7 @@ Create a gateway profile that allows PyPI and npm registry traffic, denies every
 ## Quick start
 
 ```bash
-cd islo-recipes/recipes/gateway-allowlist
+cd recipes/gateway-allowlist
 uv sync
 cp .env.example .env
 # edit .env with your API key
@@ -80,4 +80,3 @@ sequenceDiagram
 ## Related recipes
 
 - [`mount-s3`](../mount-s3/) — gateway + AWS cloud role for S3 access
-- [`harbor-evals`](../harbor-evals/) — advanced anti-cheating egress for evals

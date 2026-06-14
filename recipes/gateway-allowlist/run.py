@@ -18,6 +18,7 @@ load_dotenv()
 RECIPE_ID = "gateway-allowlist"
 PROFILE_NAME = "recipes-deps-only"
 VENV = "/tmp/recipe-venv"
+POLL_INTERVAL = 0.5
 
 ALLOW_RULES = [
     (1, "*.debian.org", "allow"),
@@ -27,12 +28,15 @@ ALLOW_RULES = [
     (10, "*", "deny"),
 ]
 
-PYTHON_BOOTSTRAP = (
-    "sudo rm -f /etc/apt/sources.list.d/docker.list && "
-    "sudo apt-get update -qq && "
-    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
-    "python3 python3-pip python3-venv"
-)
+SETUP = f"""
+set -eu
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+  python3 python3-pip python3-venv
+python3 -m venv {VENV}
+{VENV}/bin/pip install --disable-pip-version-check --no-cache-dir -q httpx
+"""
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
@@ -55,7 +59,7 @@ def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             break
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     else:
         raise TimeoutError(f"computer {name!r} not ready")
     try:
@@ -109,13 +113,7 @@ def main() -> int:
     name = f"recipes-gw-{uuid.uuid4().hex[:8]}"
 
     with computer(client, name=name, gateway_profile=profile.name, vcpus=2, memory_mb=2048):
-        must_exec(client, name, PYTHON_BOOTSTRAP, timeout=300)
-        must_exec(
-            client,
-            name,
-            f"python3 -m venv {VENV} && {VENV}/bin/pip install --quiet httpx",
-            timeout=180,
-        )
+        must_exec(client, name, SETUP, timeout=300)
         must_exec(client, name, f'{VENV}/bin/python -c "import httpx; print(\'ok\')"', timeout=30)
 
         blocked = exec_sh(

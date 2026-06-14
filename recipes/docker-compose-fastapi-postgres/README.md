@@ -24,13 +24,13 @@ Clone this repo onto a computer with Docker enabled, start FastAPI and Postgres 
 |----------|----------|-------------|
 | `ISLO_API_KEY` | Yes | API key from [app.islo.dev/api-keys](https://app.islo.dev/api-keys) |
 | `ISLO_BASE_URL` | No | Control-plane URL (default `https://api.islo.dev`) |
-| `ISLO_RECIPES_REPO_URL` | Yes* | Git URL for this repo (*default: `https://github.com/islo-labs/islo-recipes`) |
+| `ISLO_RECIPES_REPO_URL` | Yes* | Git URL for this repo (*default: `https://github.com/islo-labs/recipes`) |
 | `ISLO_RECIPES_REF` | No | Branch, tag, or commit to clone |
 
 ## Quick start
 
 ```bash
-cd islo-recipes/recipes/docker-compose-fastapi-postgres
+cd recipes/docker-compose-fastapi-postgres
 uv sync
 cp .env.example .env
 # edit .env
@@ -62,5 +62,5 @@ PASS: docker-compose-fastapi-postgres
 
 ## Related recipes
 
-- [`web-app-e2e`](../web-app-e2e/) — browser tests without Compose
+- [`playwright`](../playwright/) — browser tests without Compose
 - [`gateway-allowlist`](../gateway-allowlist/) — restrict egress for dependency installs

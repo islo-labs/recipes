@@ -1,4 +1,4 @@
-# Web app browser E2E
+# Playwright
 
 Run Playwright browser tests against a small FastAPI app on an Islo computer.
 
@@ -10,7 +10,7 @@ Show how to run your application's browser E2E tests on Islo: clone source via G
 
 - CI-style browser tests for a Python web app
 - Validating Playwright on Islo before porting your own test suite
-- Learning `GitSource` + `setup_scripts` at computer init
+- Learning `GitSource` + exec-based setup on an Islo computer
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ Show how to run your application's browser E2E tests on Islo: clone source via G
 ### On Islo (orchestrated)
 
 ```bash
-cd islo-recipes/recipes/web-app-e2e
+cd recipes/playwright
 uv sync
 cp .env.example .env
 # edit .env
@@ -45,7 +45,7 @@ uv run python run.py
 Install deps and Playwright, then run tests against a locally started server:
 
 ```bash
-cd islo-recipes/recipes/web-app-e2e
+cd recipes/playwright
 uv sync --extra app
 uv run playwright install chromium
 uv run playwright install-deps chromium
@@ -56,14 +56,14 @@ uv run pytest e2e/ -v
 ## Verify success
 
 ```
-PASS: web-app-e2e
+PASS: playwright
 ```
 
 Pytest output should show one passing test (`test_counter_increments`).
 
 ## How it works
 
-1. Creates a computer with `GitSource` and a setup script that installs Python deps, Chromium, and Playwright OS libraries.
+1. Creates a computer with `GitSource`, then installs Python deps, Chromium, and Playwright OS libraries via exec.
 2. Starts FastAPI with uvicorn in the background on port 8000.
 3. Runs `pytest e2e/` which opens Chromium, clicks **Increment**, and asserts the counter updates.
 
@@ -73,7 +73,8 @@ Pytest output should show one passing test (`test_counter_increments`).
 |---------|-----|
 | Playwright browser missing | Setup runs `playwright install chromium` and `playwright install-deps` |
 | Server not ready | Check `/tmp/web-app.log` via exec; increase poll timeout |
-| Git clone fails | Verify public repo URL and ref |
+| Hangs during setup | Playwright browser download can take several minutes; progress prints show each phase |
+| Git clone fails | Verify repo URL, ref, and that `recipes/playwright` exists on that branch |
 
 ## Related recipes
 

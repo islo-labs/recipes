@@ -1,70 +1,77 @@
 # Islo Recipes
 
-Customer-facing, copy-paste examples for building on [Islo](https://islo.dev). Each recipe is a **self-contained folder** with its own `pyproject.toml`, `uv.lock`, and `run.py`.
+Customer-facing, copy-paste examples for building on [Islo](https://islo.dev). Each recipe is a **self-contained folder** under `recipes/`.
 
 This repository is optimized for **AI coding agents** and human developers alike. Read [`AGENTS.md`](AGENTS.md) first if you are an agent.
 
 ## Quick start
 
-Pick a recipe from [`recipes/catalog.yaml`](recipes/catalog.yaml), then:
+**SDK recipes** — programmatic orchestration with `run.py`:
 
 ```bash
-git clone https://github.com/islo-labs/islo-recipes
-cd islo-recipes/recipes/gateway-allowlist   # example
+git clone https://github.com/islo-labs/recipes
+cd recipes/gateway-allowlist
 
 export ISLO_API_KEY="your-api-key"   # from https://app.islo.dev/api-keys
-export ISLO_BASE_URL="https://api.islo.dev"  # optional; this is the default
 
 uv sync
 uv run python run.py
 ```
 
-Or run the full local smoke suite from the repo root (requires `ISLO_API_KEY` in your shell):
+**Agent recipes** — Islo SDK + agent inside a computer:
 
 ```bash
-./scripts/test_local.sh
+cd recipes/claude-agent-sdk-in-sandbox
+uv sync
+uv run python claude_agent_sdk_in_sandbox/main.py
 ```
 
-## v1 recipes
+See each recipe's `README.md` for full steps.
+
+## SDK recipes
+
+Programmatic examples using the [Islo Python SDK](https://pypi.org/project/islo/). Each prints `PASS: <recipe-id>` on success.
 
 | Recipe | Description |
 |--------|-------------|
 | [`gateway-allowlist`](recipes/gateway-allowlist/) | Restrict computer egress to package registries (PyPI, npm) |
 | [`docker-compose-fastapi-postgres`](recipes/docker-compose-fastapi-postgres/) | Run a FastAPI + Postgres stack with Docker Compose |
-| [`web-app-e2e`](recipes/web-app-e2e/) | FastAPI app + Playwright browser tests on an Islo computer |
-| [`harbor-evals`](recipes/harbor-evals/) | Run Harbor agent evals on Islo (`hello-world` smoke test) |
+| [`playwright`](recipes/playwright/) | FastAPI app + Playwright browser tests on an Islo computer |
 | [`mount-s3`](recipes/mount-s3/) | Mount an S3 bucket on a computer with a custom image + gateway |
 
-## How we test these recipes
+GitSource recipes clone this repo — push `main` before running `playwright` or `docker-compose-fastapi-postgres`.
 
-Every recipe prints `PASS: <recipe-id>` on success.
+## Agent recipes
 
-### Local (your laptop + live Islo)
+Run coding agents inside an Islo computer via the Python SDK.
+
+| Recipe | Description |
+|--------|-------------|
+| [`anthropic-claude-code-in-sandbox`](recipes/anthropic-claude-code-in-sandbox/) | Claude Code CLI |
+| [`openai-codex-in-sandbox`](recipes/openai-codex-in-sandbox/) | OpenAI Codex CLI |
+| [`claude-agent-sdk-in-sandbox`](recipes/claude-agent-sdk-in-sandbox/) | Claude Agent SDK (`query()`) |
+
+CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent codex`. See [agent integration](https://docs.islo.dev/cli/agent-integration).
+
+## Testing
+
+**Local validation** (no API keys):
 
 ```bash
-export ISLO_API_KEY=ak_...
-./scripts/test_local.sh
+uv sync --extra dev
+./scripts/validate.sh
 ```
 
-Run one recipe:
+**Live smoke** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
+
+GitSource recipes (`playwright`, `docker-compose-fastapi-postgres`) clone this repo inside the computer. `./scripts/smoke.sh` sets `ISLO_RECIPES_REF` to your **current git branch** automatically — push the branch first. Override with `ISLO_RECIPES_REF=main` after merge.
 
 ```bash
-./scripts/test_local.sh gateway-allowlist
+export ISLO_API_KEY="..."
+./scripts/smoke.sh all
 ```
 
-Structure checks only (no Islo):
-
-```bash
-./scripts/test_local.sh --validate-only
-```
-
-GitSource recipes clone [github.com/islo-labs/islo-recipes](https://github.com/islo-labs/islo-recipes) — push `main` before running `web-app-e2e` or `docker-compose-fastapi-postgres`.
-
-Optional: `mount-s3` runs when `AWS_ROLE_ARN` and `S3_BUCKET` are set. Install Harbor for `harbor-evals`: `uv tool install 'harbor[islo]'`.
-
-### CI
-
-Structure checks run on every pull request. Live smoke tests run nightly — see [`.github/workflows/recipes-smoke.yml`](.github/workflows/recipes-smoke.yml).
+CI runs `./scripts/validate.sh` on every PR ([`validate.yml`](.github/workflows/validate.yml)). Live smoke runs on a schedule and via workflow dispatch ([`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml)).
 
 ## Add a recipe
 
@@ -74,4 +81,3 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 - [Islo docs](https://docs.islo.dev)
 - [Python SDK](https://pypi.org/project/islo/)
-- [Harbor + Islo integration](https://docs.islo.dev/integrations/harbor)

@@ -6,17 +6,21 @@ on:
   workflow_dispatch:
     inputs:
       recipe:
-        description: Recipe id (or "all")
+        description: Recipe id, group (sdk/agents/all), or single recipe
         required: true
-        default: all
+        default: sdk
         type: choice
         options:
+          - sdk
+          - agents
           - all
           - gateway-allowlist
           - docker-compose-fastapi-postgres
-          - web-app-e2e
-          - harbor-evals
+          - playwright
           - mount-s3
+          - anthropic-claude-code-in-sandbox
+          - openai-codex-in-sandbox
+          - claude-agent-sdk-in-sandbox
 
 concurrency:
   group: recipes-smoke
@@ -25,12 +29,18 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       ISLO_BASE_URL: ${{ vars.ISLO_BASE_URL }}
       ISLO_API_KEY: ${{ secrets.ISLO_API_KEY }}
       ISLO_RECIPES_REPO_URL: https://github.com/${{ github.repository }}
       ISLO_RECIPES_REF: ${{ github.ref_name }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ISLO_IAM_READY: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -40,45 +50,14 @@ jobs:
 
       - uses: astral-sh/setup-uv@v3
 
-      - name: Install Harbor (harbor-evals)
-        if: github.event.inputs.recipe == 'harbor-evals' || github.event.inputs.recipe == 'all' || github.event_name == 'schedule'
-        run: uv tool install 'harbor[islo]'
+      - name: Install dev dependencies
+        run: uv sync --extra dev
 
-      - name: Run gateway-allowlist
-        if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'gateway-allowlist'
-        run: cd recipes/gateway-allowlist && uv sync && uv run python run.py
-
-      - name: Run docker-compose-fastapi-postgres
-        if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'docker-compose-fastapi-postgres'
-        run: cd recipes/docker-compose-fastapi-postgres && uv sync && uv run python run.py
-
-      - name: Run web-app-e2e
-        if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'web-app-e2e'
-        run: cd recipes/web-app-e2e && uv sync && uv run python run.py
-
-      - name: Run harbor-evals
-        if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.recipe == 'all' ||
-          github.event.inputs.recipe == 'harbor-evals'
-        env:
-          ISLO_API_URL: ${{ vars.ISLO_BASE_URL }}
-        run: cd recipes/harbor-evals && uv sync && uv run python run.py
-
-      - name: Run mount-s3 (manual only)
-        if: github.event.inputs.recipe == 'mount-s3'
-        env:
-          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          ISLO_IAM_READY: "1"
-        run: cd recipes/mount-s3 && uv sync && uv run python run.py
+      - name: Run live smoke tests
+        run: |
+          SELECTION="${{ github.event.inputs.recipe }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            SELECTION="sdk"
+          fi
+          chmod +x scripts/smoke.sh
+          ./scripts/smoke.sh "$SELECTION"

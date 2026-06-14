@@ -25,6 +25,7 @@ BUCKET = os.environ["S3_BUCKET"]
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 IMAGE = os.environ.get("ISLO_MOUNT_S3_IMAGE", "ghcr.io/islo-labs/islo-runner-mount-s3:latest")
 IAM_READY = os.environ.get("ISLO_IAM_READY", "").lower() in {"1", "true", "yes"}
+POLL_INTERVAL = 0.5
 
 
 def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
@@ -41,7 +42,7 @@ def wait_ready(client: Islo, name: str, *, timeout: float = 180) -> None:
     while time.monotonic() < deadline:
         if client.sandboxes.get_sandbox(name).status == "running":
             return
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL)
     raise TimeoutError(f"computer {name!r} not ready")
 
 

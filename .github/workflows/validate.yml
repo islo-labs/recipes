@@ -20,9 +20,6 @@ jobs:
       - name: Install dev dependencies
         run: uv sync --extra dev
 
-      - name: Validate catalog and recipe structure
-        run: uv run python scripts/validate_catalog.py
-
       - name: Check for committed secrets
         run: |
           if git ls-files '*.env' | grep -q .; then
@@ -30,5 +27,5 @@ jobs:
             exit 1
           fi
 
-      - name: Ruff check
-        run: uv run ruff check recipes scripts
+      - name: Validate recipes
+        run: ./scripts/validate.sh

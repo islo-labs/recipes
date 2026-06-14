@@ -32,7 +32,7 @@ Register an AWS IAM role with Islo, attach it to a gateway profile, start a comp
 ## Quick start
 
 ```bash
-cd islo-recipes/recipes/mount-s3
+cd recipes/mount-s3
 uv sync
 cp .env.example .env
 # edit .env
