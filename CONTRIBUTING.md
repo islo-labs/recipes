@@ -20,7 +20,7 @@ Success is verified by `PASS: <recipe-id>` in stdout.
 
 ### Agent recipes (Claude Code, Codex)
 
-SDK-first examples modeled on the [E2B cookbook](https://github.com/e2b-dev/e2b-cookbook) agent examples. Must include:
+SDK-first examples for running coding agents in an Islo computer. Must include:
 
 | File | Purpose |
 |------|---------|
@@ -28,7 +28,7 @@ SDK-first examples modeled on the [E2B cookbook](https://github.com/e2b-dev/e2b-
 | `.env.example` | API keys for the SDK example |
 | `pyproject.toml` | Recipe-local Python dependencies |
 | `uv.lock` | Locked deps (`uv lock` in the recipe dir) |
-| `*/main.py` | Runnable SDK script (like E2B's `anthropic_claude_code_in_sandbox/main.py`) |
+| `*/main.py` | Runnable SDK script (e.g. `anthropic_claude_code_in_sandbox/main.py`) |
 
 No `run.py` or `PASS:` convention required. CLI workflow goes in an optional "Also available via Islo CLI" section.
 
@@ -46,7 +46,7 @@ No `run.py` or `PASS:` convention required. CLI workflow goes in an optional "Al
 
 ## README sections — agent recipes
 
-Follow the E2B pattern:
+Use this section order:
 
 1. Title + one-line description
 2. **How to create a computer with \<Agent\>** — inline SDK snippet

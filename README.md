@@ -18,7 +18,7 @@ uv sync
 uv run python run.py
 ```
 
-**Agent recipes** — SDK examples (like the [E2B cookbook](https://github.com/e2b-dev/e2b-cookbook)) with optional CLI workflow:
+**Agent recipes** — SDK examples with an optional CLI workflow:
 
 ```bash
 cd recipes/anthropic-claude-code-in-sandbox
