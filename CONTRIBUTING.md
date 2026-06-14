@@ -38,7 +38,7 @@ Set `lang` implicitly: `pyproject.toml` → Python, `go.mod` → Go, `package.js
 
 ## README sections — agent recipes
 
-1. Title · 2. **How to create a computer with …** · 3. **How to run example** · 4. **Also available via Islo CLI** (optional) · 5. **Environment variables** · 6. **Troubleshooting** · 7. **Related recipes**
+1. Title · 2. **How to run in Islo** · 3. **How to run example** · 4. **Also available via Islo CLI** (optional) · 5. **Environment variables** · 6. **Troubleshooting** · 7. **Related recipes**
 
 ## Before opening a PR
 

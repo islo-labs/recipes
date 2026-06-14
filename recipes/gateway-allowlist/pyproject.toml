@@ -1,7 +1,7 @@
 [project]
 name = "gateway-allowlist"
 version = "0.1.0"
-description = "Restrict computer egress to package registries"
+description = "Restrict egress in Islo to package registries"
 requires-python = ">=3.10"
 dependencies = [
   "islo>=0.3.1",

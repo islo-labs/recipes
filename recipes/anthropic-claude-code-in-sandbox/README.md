@@ -1,10 +1,10 @@
-# Anthropic Claude Code in Islo Sandbox (Python)
+# Anthropic Claude Code in Islo (Python)
 
-This example shows how to run Anthropic's [Claude Code](https://github.com/anthropics/claude-code) in an Islo computer.
+This example shows how to run Anthropic's [Claude Code](https://github.com/anthropics/claude-code) in Islo.
 
-## How to create a computer with Claude Code
+## How to run in Islo
 
-Create a computer, install Claude Code via a setup script, and run a prompt:
+Install Claude Code and run a prompt in Islo:
 
 ```python
 from islo import Islo
@@ -105,7 +105,7 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ISLO_API_KEY` | Yes | Islo API key |
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key passed into the computer |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key passed into Islo |
 | `ISLO_BASE_URL` | No | Control-plane URL (default `https://api.islo.dev`) |
 
 ## Troubleshooting
@@ -115,7 +115,7 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 | `--dangerously-skip-permissions cannot be used with root/sudo` | Run Claude Code as a non-root user (`sudo -u agent`); see `main.py` |
 | `claude: command not found` | Setup script failed — check stderr; ensure npm registry is reachable |
 | Auth errors | Verify `ANTHROPIC_API_KEY` is set and valid |
-| Computer not ready | Wait for setup scripts to finish before running Claude Code |
+| Islo not ready | Wait for setup to finish before running Claude Code |
 
 ## Related recipes
 

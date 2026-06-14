@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restrict computer egress to package registries and verify allow/deny behavior."""
+"""Restrict egress in Islo to package registries and verify allow/deny behavior."""
 
 from __future__ import annotations
 

@@ -1,10 +1,10 @@
 # Gateway allowlist
 
-Restrict an Islo computer's internet egress to package registries so untrusted code can install dependencies but cannot reach arbitrary hosts.
+Restrict internet egress in Islo to package registries so untrusted code can install dependencies but cannot reach arbitrary hosts.
 
 ## Goal
 
-Create a gateway profile that allows PyPI and npm registry traffic, denies everything else, and prove it on a live computer.
+Create a gateway profile that allows PyPI and npm registry traffic, denies everything else, and prove it in Islo.
 
 ## When to use
 
@@ -48,7 +48,7 @@ You should also see `Blocked curl to example.com as expected` when the deny rule
 ## How it works
 
 1. Creates or reuses gateway profile `recipes-deps-only` with allow rules for Debian apt, PyPI, npm, plus a catch-all deny.
-2. Creates an Islo computer (SDK: `create_sandbox`) and installs Python via apt over the gateway.
+2. Starts in Islo (SDK: `create_sandbox`) and installs Python via apt over the gateway.
 3. Runs `pip install httpx` in a venv (allowed) and `curl https://example.com` (blocked).
 
 ```mermaid
@@ -56,7 +56,7 @@ sequenceDiagram
     participant Script as run.py
     participant Islo as IsloAPI
     participant GW as Gateway
-    participant PC as Computer
+    participant PC as Islo
 
     Script->>Islo: create gateway profile + rules
     Script->>Islo: create_sandbox(gateway_profile)

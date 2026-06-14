@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run inside an Islo computer — Claude Agent SDK example."""
+"""Run in Islo — Claude Agent SDK example."""
 
 from __future__ import annotations
 

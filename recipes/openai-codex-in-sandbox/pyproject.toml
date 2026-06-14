@@ -1,7 +1,7 @@
 [project]
 name = "openai-codex-in-sandbox"
 version = "0.1.0"
-description = "Run OpenAI Codex in an Islo sandbox"
+description = "Run OpenAI Codex in Islo"
 requires-python = ">=3.10"
 dependencies = [
   "islo>=0.3.1",

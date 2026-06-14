@@ -1,6 +1,6 @@
 # Playwright
 
-Run Playwright browser tests against a small FastAPI app on an Islo computer.
+Run Playwright browser tests against a small FastAPI app in Islo.
 
 ## Goal
 
@@ -10,7 +10,7 @@ Show how to run your application's browser E2E tests on Islo: clone source via G
 
 - CI-style browser tests for a Python web app
 - Validating Playwright on Islo before porting your own test suite
-- Learning `GitSource` + exec-based setup on an Islo computer
+- Learning `GitSource` + exec-based setup in Islo
 
 ## Prerequisites
 
@@ -63,7 +63,7 @@ Pytest output should show one passing test (`test_counter_increments`).
 
 ## How it works
 
-1. Creates a computer with `GitSource`, then installs Python deps, Chromium, and Playwright OS libraries via exec.
+1. Starts in Islo with `GitSource`, then installs Python deps, Chromium, and Playwright OS libraries via exec.
 2. Starts FastAPI with uvicorn in the background on port 8000.
 3. Runs `pytest e2e/` which opens Chromium, clicks **Increment**, and asserts the counter updates.
 

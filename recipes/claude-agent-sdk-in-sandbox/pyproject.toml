@@ -1,7 +1,7 @@
 [project]
 name = "claude-agent-sdk-in-sandbox"
 version = "0.1.0"
-description = "Run the Claude Agent SDK in an Islo sandbox"
+description = "Run the Claude Agent SDK in Islo"
 requires-python = ">=3.10"
 dependencies = [
   "islo>=0.3.1",

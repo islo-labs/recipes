@@ -54,7 +54,7 @@ uv sync --extra dev
 Each `exec_and_wait_sync` call is a control-plane round trip. Prefer:
 
 - **One setup shell script** per phase (apt + venv + pip, or apt + user + npm) instead of many small execs.
-- **Fast polling** (`0.5s`) when waiting for computer ready, Git clone, or HTTP health — not `2s`.
+- **Fast polling** (`0.5s`) when waiting for Islo ready, Git clone, or HTTP health — not `2s`.
 - **Install flags**: pip `--disable-pip-version-check --no-cache-dir`; npm `--no-fund --no-audit --loglevel=error`; Playwright `install --with-deps chromium` (not separate `install` + `install-deps`).
 - **GitSource recipes**: poll until the recipe path exists before setup — don't fail-and-retry.
 

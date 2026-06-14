@@ -18,7 +18,7 @@ uv sync
 uv run python run.py
 ```
 
-**Agent recipes** — Islo SDK + agent inside a computer:
+**Agent recipes** — Islo SDK + agent in Islo:
 
 ```bash
 cd recipes/claude-agent-sdk-in-sandbox
@@ -34,16 +34,16 @@ Programmatic examples using the [Islo Python SDK](https://pypi.org/project/islo/
 
 | Recipe | Description |
 |--------|-------------|
-| [`gateway-allowlist`](recipes/gateway-allowlist/) | Restrict computer egress to package registries (PyPI, npm) |
+| [`gateway-allowlist`](recipes/gateway-allowlist/) | Restrict egress in Islo to package registries (PyPI, npm) |
 | [`docker-compose-fastapi-postgres`](recipes/docker-compose-fastapi-postgres/) | Run a FastAPI + Postgres stack with Docker Compose |
-| [`playwright`](recipes/playwright/) | FastAPI app + Playwright browser tests on an Islo computer |
-| [`mount-s3`](recipes/mount-s3/) | Mount an S3 bucket on a computer with a custom image + gateway |
+| [`playwright`](recipes/playwright/) | FastAPI app + Playwright browser tests in Islo |
+| [`mount-s3`](recipes/mount-s3/) | Mount an S3 bucket in Islo with a custom image + gateway |
 
 GitSource recipes clone this repo — push `main` before running `playwright` or `docker-compose-fastapi-postgres`.
 
 ## Agent recipes
 
-Run coding agents inside an Islo computer via the Python SDK.
+Run coding agents in Islo via the Python SDK.
 
 | Recipe | Description |
 |--------|-------------|
@@ -64,7 +64,7 @@ uv sync --extra dev
 
 **Live smoke** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
 
-GitSource recipes (`playwright`, `docker-compose-fastapi-postgres`) clone this repo inside the computer. `./scripts/smoke.sh` sets `ISLO_RECIPES_REF` to your **current git branch** automatically — push the branch first. Override with `ISLO_RECIPES_REF=main` after merge.
+GitSource recipes (`playwright`, `docker-compose-fastapi-postgres`) clone this repo in Islo. `./scripts/smoke.sh` sets `ISLO_RECIPES_REF` to your **current git branch** automatically — push the branch first. Override with `ISLO_RECIPES_REF=main` after merge.
 
 ```bash
 export ISLO_API_KEY="..."

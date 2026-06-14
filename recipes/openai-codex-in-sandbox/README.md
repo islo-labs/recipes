@@ -1,10 +1,10 @@
-# OpenAI Codex in Islo Sandbox (Python)
+# OpenAI Codex in Islo (Python)
 
-This example shows how to run OpenAI's [Codex](https://github.com/openai/codex) in an Islo computer.
+This example shows how to run OpenAI's [Codex](https://github.com/openai/codex) in Islo.
 
-## How to create a computer with Codex
+## How to run in Islo
 
-Create a computer, install Codex via a setup script, and run a prompt:
+Install Codex and run a prompt in Islo:
 
 ```python
 from islo import Islo
@@ -73,7 +73,7 @@ client.sandboxes.delete_sandbox(name)
 Set `ISLO_API_KEY` and `OPENAI_API_KEY` in `.env` (copy from `.env.example`):
 
 - `ISLO_API_KEY` — from [app.islo.dev/api-keys](https://app.islo.dev/api-keys)
-- `OPENAI_API_KEY` — from [OpenAI Platform](https://platform.openai.com/api-keys). The example maps this to `CODEX_API_KEY` inside the computer (`codex exec` requires that name).
+- `OPENAI_API_KEY` — from [OpenAI Platform](https://platform.openai.com/api-keys). The example maps this to `CODEX_API_KEY` in Islo (`codex exec` requires that name).
 
 **2. Install dependencies**
 

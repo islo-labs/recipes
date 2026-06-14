@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run FastAPI + Playwright browser E2E tests on an Islo computer."""
+"""Run FastAPI + Playwright browser E2E tests in Islo."""
 
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def main() -> int:
     name = f"recipes-playwright-{uuid.uuid4().hex[:8]}"
     sources = [GitSource(repo_url=REPO_URL, target_path="islo-recipes", branch=REPO_REF)]
 
-    print(f"Creating computer {name!r}…")
+    print(f"Creating {name!r} in Islo…")
     with computer(
         client,
         name=name,

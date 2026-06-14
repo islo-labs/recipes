@@ -1,10 +1,10 @@
-# Claude Agent SDK in Islo Sandbox (Python)
+# Claude Agent SDK in Islo (Python)
 
-Build a programmatic agent with Anthropic's [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) running inside an Islo computer.
+Build a programmatic agent with Anthropic's [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) in Islo.
 
-## How to create a computer with the Agent SDK
+## How to run in Islo
 
-Create a computer, install the Agent SDK, and run an agent script:
+Install the Agent SDK and run an agent script in Islo:
 
 ```python
 from islo import Islo
@@ -71,7 +71,7 @@ For interactive Claude Code sessions (CLI, not Agent SDK), see [`anthropic-claud
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ISLO_API_KEY` | Yes | Islo API key |
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key passed into the computer |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key passed into Islo |
 | `ISLO_BASE_URL` | No | Control-plane URL (default `https://api.islo.dev`) |
 
 ## Troubleshooting
@@ -84,4 +84,4 @@ For interactive Claude Code sessions (CLI, not Agent SDK), see [`anthropic-claud
 
 ## Related recipes
 
-- [`anthropic-claude-code-in-sandbox`](../anthropic-claude-code-in-sandbox/) — Claude Code CLI in a computer
+- [`anthropic-claude-code-in-sandbox`](../anthropic-claude-code-in-sandbox/) — Claude Code CLI in Islo

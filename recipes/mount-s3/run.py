@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mount an S3 bucket on an Islo computer using a custom image and gateway cloud role."""
+"""Mount an S3 bucket in Islo using a custom image and gateway cloud role."""
 
 from __future__ import annotations
 
@@ -117,7 +117,7 @@ def main() -> int:
     gateway = ensure_gateway(client, role)
     name = f"recipes-s3-{uuid.uuid4().hex[:8]}"
 
-    print(f"Creating computer {name!r} with image {IMAGE!r} and gateway_profile={gateway.name!r}")
+    print(f"Creating {name!r} in Islo with image {IMAGE!r} and gateway_profile={gateway.name!r}")
     client.sandboxes.create_sandbox(
         name=name,
         image=IMAGE,

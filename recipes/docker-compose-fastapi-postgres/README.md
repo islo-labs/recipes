@@ -1,10 +1,10 @@
 # Docker Compose — FastAPI + Postgres
 
-Run a two-service stack (API + database) on an Islo computer using Docker Compose.
+Run a two-service stack (API + database) in Islo using Docker Compose.
 
 ## Goal
 
-Clone this repo onto a computer with Docker enabled, start FastAPI and Postgres via Compose, and verify HTTP health and database reads.
+Clone this repo in Islo with Docker enabled, start FastAPI and Postgres via Compose, and verify HTTP health and database reads.
 
 ## When to use
 
@@ -46,7 +46,7 @@ PASS: docker-compose-fastapi-postgres
 
 ## How it works
 
-1. Creates a computer with `GitSource` (clones this repo to `/workspace/islo-recipes`). The default islo-runner image includes Docker.
+1. Uses `GitSource` in Islo (clones this repo to `/workspace/islo-recipes`). The default islo-runner image includes Docker.
 2. Verifies `docker compose` (preinstalled on islo-runner).
 3. Runs `docker compose up -d --wait` in this recipe directory.
 4. Curls `/health` and `/items` (seed row from `db/init.sql`).

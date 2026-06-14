@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an Islo computer and run a Claude Agent SDK script inside it."""
+"""Run a Claude Agent SDK script in Islo."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def main() -> int:
 
     client = Islo()
     sandbox_name = f"recipes-agent-sdk-{uuid.uuid4().hex[:8]}"
-    print(f"Creating computer {sandbox_name!r}…")
+    print(f"Creating {sandbox_name!r} in Islo…")
 
     with computer(client, name=sandbox_name):
         print("Installing Python and Claude Agent SDK…")

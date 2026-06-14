@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Claude Code in an Islo computer (SDK example)."""
+"""Run Claude Code in Islo (SDK example)."""
 
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ def main() -> int:
 
     client = Islo()
     name = f"recipes-claude-{uuid.uuid4().hex[:8]}"
-    print(f"Creating computer {name!r}…")
+    print(f"Creating {name!r} in Islo…")
 
     with computer(client, name=name):
         print("Installing Node.js and Claude Code…")

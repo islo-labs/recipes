@@ -18,7 +18,7 @@ TYPE_FILES: dict[str, tuple[str, ...]] = {
 
 TYPE_README: dict[str, tuple[str, ...]] = {
     "sdk": ("## Goal", "## Quick start", "## Verify success"),
-    "agent": ("## How to create", "## How to run example"),
+    "agent": ("## How to run in Islo", "## How to run example"),
     "automation": ("## Quick start",),
 }
 

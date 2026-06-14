@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a FastAPI + Postgres Docker Compose stack on an Islo computer."""
+"""Run a FastAPI + Postgres Docker Compose stack in Islo."""
 
 from __future__ import annotations
 

@@ -1,16 +1,16 @@
-# Mount S3 on a computer
+# Mount S3 in Islo
 
-Mount an AWS S3 bucket on an Islo computer using a custom image with Mountpoint for S3, a gateway profile, and an AWS cloud role.
+Mount an AWS S3 bucket in Islo using a custom image with Mountpoint for S3, a gateway profile, and an AWS cloud role.
 
 ## Goal
 
-Register an AWS IAM role with Islo, attach it to a gateway profile, start a computer from a custom image, mount a bucket, and round-trip a file.
+Register an AWS IAM role with Islo, attach it to a gateway profile, start in Islo from a custom image, mount a bucket, and round-trip a file.
 
 ## When to use
 
 - Persistent object storage for agent workloads on Islo
-- Custom computer images with preinstalled tools
-- AWS access via gateway cloud roles (not long-lived keys in the computer)
+- Custom images in Islo with preinstalled tools
+- AWS access via gateway cloud roles (not long-lived keys in Islo)
 
 ## Prerequisites
 
@@ -58,7 +58,7 @@ PASS: mount-s3
 ## How it works
 
 1. Creates or reuses an AWS cloud role and gateway profile with that role attached.
-2. Creates a computer (SDK: `create_sandbox`) from the mount-s3 image.
+2. Starts in Islo (SDK: `create_sandbox`) from the mount-s3 image.
 3. Runs `mount-s3.sh` **after** create — gateway IAM credentials are available only post-create, not at image entrypoint.
 4. Writes and reads a test file under `/tmp/s3`.
 

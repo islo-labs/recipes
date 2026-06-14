@@ -1,7 +1,7 @@
 [project]
 name = "anthropic-claude-code-in-sandbox"
 version = "0.1.0"
-description = "Run Anthropic Claude Code in an Islo sandbox"
+description = "Run Anthropic Claude Code in Islo"
 requires-python = ">=3.10"
 dependencies = [
   "islo>=0.3.1",
