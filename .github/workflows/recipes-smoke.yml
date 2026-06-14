@@ -40,9 +40,6 @@ jobs:
 
       - uses: astral-sh/setup-uv@v3
 
-      - name: Install dependencies
-        run: uv sync --extra dev --extra web-app-e2e
-
       - name: Install Harbor (harbor-evals)
         if: github.event.inputs.recipe == 'harbor-evals' || github.event.inputs.recipe == 'all' || github.event_name == 'schedule'
         run: uv tool install 'harbor[islo]'
@@ -52,21 +49,21 @@ jobs:
           github.event_name == 'schedule' ||
           github.event.inputs.recipe == 'all' ||
           github.event.inputs.recipe == 'gateway-allowlist'
-        run: uv run python recipes/gateway-allowlist/run.py
+        run: cd recipes/gateway-allowlist && uv sync && uv run python run.py
 
       - name: Run docker-compose-fastapi-postgres
         if: |
           github.event_name == 'schedule' ||
           github.event.inputs.recipe == 'all' ||
           github.event.inputs.recipe == 'docker-compose-fastapi-postgres'
-        run: uv run python recipes/docker-compose-fastapi-postgres/run.py
+        run: cd recipes/docker-compose-fastapi-postgres && uv sync && uv run python run.py
 
       - name: Run web-app-e2e
         if: |
           github.event_name == 'schedule' ||
           github.event.inputs.recipe == 'all' ||
           github.event.inputs.recipe == 'web-app-e2e'
-        run: uv run python recipes/web-app-e2e/run.py
+        run: cd recipes/web-app-e2e && uv sync && uv run python run.py
 
       - name: Run harbor-evals
         if: |
@@ -75,7 +72,7 @@ jobs:
           github.event.inputs.recipe == 'harbor-evals'
         env:
           ISLO_API_URL: ${{ vars.ISLO_BASE_URL }}
-        run: uv run python recipes/harbor-evals/run.py
+        run: cd recipes/harbor-evals && uv sync && uv run python run.py
 
       - name: Run mount-s3 (manual only)
         if: github.event.inputs.recipe == 'mount-s3'
@@ -84,4 +81,4 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           AWS_REGION: ${{ vars.AWS_REGION }}
           ISLO_IAM_READY: "1"
-        run: uv run python recipes/mount-s3/run.py
+        run: cd recipes/mount-s3 && uv sync && uv run python run.py

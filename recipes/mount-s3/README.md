@@ -32,12 +32,12 @@ Register an AWS IAM role with Islo, attach it to a gateway profile, start a comp
 ## Quick start
 
 ```bash
-cd islo-recipes
+cd islo-recipes/recipes/mount-s3
 uv sync
-cp recipes/mount-s3/.env.example .env
+cp .env.example .env
 # edit .env
 
-uv run python recipes/mount-s3/run.py
+uv run python run.py
 ```
 
 On first run the script prints an **External ID** and trust-policy JSON. Update your IAM role trust policy, then press Enter (or set `ISLO_IAM_READY=1` if already configured).
@@ -77,4 +77,3 @@ Your role needs S3 permissions on the bucket (`s3:ListBucket`, `s3:GetObject`, `
 ## Related recipes
 
 - [`gateway-allowlist`](../gateway-allowlist/) — host egress rules (different gateway use case)
-- [`custom-docker-image`](../) — see root README roadmap

@@ -1,0 +1,9 @@
+[project]
+name = "gateway-allowlist"
+version = "0.1.0"
+description = "Restrict computer egress to package registries"
+requires-python = ">=3.10"
+dependencies = [
+  "islo>=0.3.1",
+  "python-dotenv>=1.0",
+]

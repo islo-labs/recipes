@@ -3,51 +3,71 @@
 
 from __future__ import annotations
 
+import os
 import sys
+import time
 import uuid
+from contextlib import contextmanager
 
-from islo_recipes.computer import client_from_env, computer, git_source, must_exec
+from dotenv import load_dotenv
+from islo import GitSource, Islo
+from islo.core.api_error import ApiError
+from islo.custom.exec import exec_and_wait_sync
+
+load_dotenv()
 
 RECIPE_ID = "docker-compose-fastapi-postgres"
-RECIPE_DIR = "/workspace/islo-recipes/recipes/docker-compose-fastapi-postgres"
+REPO_URL = os.environ.get("ISLO_RECIPES_REPO_URL", "https://github.com/islo-labs/islo-recipes")
+REPO_REF = os.environ.get("ISLO_RECIPES_REF", "main")
+RECIPE_PATH = f"/workspace/islo-recipes/recipes/{RECIPE_ID}"
 
-INSTALL_COMPOSE = """
-set -euo pipefail
-if docker compose version >/dev/null 2>&1; then
-  exit 0
-fi
-COMPOSE_VERSION="${COMPOSE_VERSION:-v2.34.0}"
-mkdir -p "$HOME/.docker/cli-plugins"
-arch=$(uname -m)
-curl -fsSL \
-  "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${arch}" \
-  -o "$HOME/.docker/cli-plugins/docker-compose"
-chmod +x "$HOME/.docker/cli-plugins/docker-compose"
-docker compose version
-"""
+
+def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
+    result = exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
+    if result.exit_code != 0:
+        raise RuntimeError(
+            f"command failed (exit={result.exit_code})\n  cmd: {cmd!r}\n"
+            f"  stdout: {result.stdout[-2000:]}\n  stderr: {result.stderr[-2000:]}"
+        )
+
+
+@contextmanager
+def computer(client: Islo, *, name: str, ready_timeout: float = 300, **kwargs):
+    client.sandboxes.create_sandbox(name=name, **kwargs)
+    deadline = time.monotonic() + ready_timeout
+    while time.monotonic() < deadline:
+        if client.sandboxes.get_sandbox(name).status == "running":
+            break
+        time.sleep(2)
+    else:
+        raise TimeoutError(f"computer {name!r} not ready")
+    try:
+        yield name
+    finally:
+        try:
+            client.sandboxes.delete_sandbox(name)
+        except ApiError:
+            pass
 
 
 def main() -> int:
-    client = client_from_env()
-    computer_name = f"recipes-compose-{uuid.uuid4().hex[:8]}"
+    client = Islo()
+    name = f"recipes-compose-{uuid.uuid4().hex[:8]}"
+    sources = [
+        GitSource(repo_url=REPO_URL, target_path="islo-recipes", branch=REPO_REF),
+    ]
 
     with computer(
         client,
-        name=computer_name,
-        sources=[git_source()],
-        init_capabilities=["docker"],
+        name=name,
+        sources=sources,
         vcpus=2,
         memory_mb=4096,
         disk_gb=15,
-        ready_timeout=300,
-    ) as name:
-        must_exec(client, name, INSTALL_COMPOSE, timeout=120)
-        must_exec(
-            client,
-            name,
-            f"cd {RECIPE_DIR} && docker compose up -d --wait",
-            timeout=600,
-        )
+    ):
+        must_exec(client, name, f"test -d '{RECIPE_PATH}'", timeout=30)
+        must_exec(client, name, "docker compose version", timeout=30)
+        must_exec(client, name, f"cd {RECIPE_PATH} && docker compose up -d --wait", timeout=600)
         must_exec(
             client,
             name,
@@ -60,7 +80,7 @@ def main() -> int:
             "curl -sf http://127.0.0.1:8000/items | grep -q seed-item",
             timeout=30,
         )
-        must_exec(client, name, f"cd {RECIPE_DIR} && docker compose down -v", timeout=120)
+        must_exec(client, name, f"cd {RECIPE_PATH} && docker compose down -v", timeout=120)
 
     print(f"PASS: {RECIPE_ID}")
     return 0

@@ -10,3 +10,4 @@ build/
 .playwright/
 test-results/
 playwright-report/
+jobs/

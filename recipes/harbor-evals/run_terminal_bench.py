@@ -8,7 +8,9 @@ import shutil
 import subprocess
 import sys
 
-from islo_recipes.computer import load_recipe_env
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DATASET = os.environ.get("HARBOR_DATASET", "terminal-bench@2.0")
 AGENT = os.environ.get("HARBOR_AGENT", "oracle")
@@ -16,7 +18,6 @@ CONCURRENCY = os.environ.get("HARBOR_CONCURRENCY", "10")
 
 
 def main() -> int:
-    load_recipe_env()
     if shutil.which("harbor") is None:
         print("Install Harbor: uv tool install 'harbor[islo]'", file=sys.stderr)
         return 1

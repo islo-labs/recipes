@@ -22,12 +22,12 @@ One sentence describing what this recipe demonstrates.
 ## Quick start
 
 ```bash
-cd islo-recipes
+cd islo-recipes/recipes/<recipe-id>
 uv sync
-cp recipes/<recipe-id>/.env.example recipes/<recipe-id>/.env
+cp .env.example .env
 # edit .env
 
-uv run python recipes/<recipe-id>/run.py
+uv run python run.py
 ```
 
 ## Verify success

@@ -1,0 +1,8 @@
+[project]
+name = "harbor-evals"
+version = "0.1.0"
+description = "Run Harbor agent evals on Islo"
+requires-python = ">=3.10"
+dependencies = [
+  "python-dotenv>=1.0",
+]

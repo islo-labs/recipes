@@ -11,8 +11,12 @@ Every recipe lives in `recipes/<recipe-id>/` and must include:
 | `README.md` | Customer docs with fixed sections (see template) |
 | `.env.example` | Required and optional environment variables |
 | `run.py` | Single orchestrator entrypoint |
+| `pyproject.toml` | Recipe-local Python dependencies |
+| `uv.lock` | Locked deps for reproducible runs (`uv lock` in the recipe dir) |
 
 Also add an entry to [`recipes/catalog.yaml`](recipes/catalog.yaml).
+
+Each recipe is a **full standalone example** — no shared Python library. Copy SDK boilerplate into `run.py` as needed.
 
 ## README sections (required order)
 
@@ -26,14 +30,10 @@ Also add an entry to [`recipes/catalog.yaml`](recipes/catalog.yaml).
 8. **Troubleshooting**
 9. **Related recipes**
 
-## Terminology
-
-Customer-facing copy uses **computer**, not sandbox. SDK method names (`create_sandbox`, etc.) stay unchanged in code.
-
 ## Before opening a PR
 
-1. Run the recipe locally against Islo and confirm `PASS: <recipe-id>`.
-2. Run structure validation: `uv run python scripts/validate_catalog.py`
+1. From the recipe directory: `uv sync && uv run python run.py` — confirm `PASS: <recipe-id>`.
+2. Run structure validation from repo root: `./scripts/test_local.sh --validate-only`
 3. Do not commit `.env`, secrets, or internal-only paths.
 
 ## CI tiers (`catalog.yaml`)
@@ -46,4 +46,21 @@ Customer-facing copy uses **computer**, not sandbox. SDK method names (`create_s
 
 ## Python dependencies
 
-Add shared deps to root [`pyproject.toml`](pyproject.toml). Recipe-specific deps can use optional extras or a recipe-local `requirements.txt` referenced by setup scripts inside the computer.
+- **Orchestrator deps** (`islo`, `python-dotenv`, etc.) go in the recipe's `pyproject.toml`.
+- **On-computer deps** (installed via setup scripts during init) can use a recipe-local `requirements.txt`.
+
+After changing deps: `cd recipes/<id> && uv lock`.
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+feat: add mount-s3 recipe
+fix: install Playwright system deps on Bookworm
+refactor: simplify gateway-allowlist run.py
+docs: update web-app-e2e quick start
+chore: bump islo SDK in gateway-allowlist lockfile
+```
+
+Use lowercase types (`feat`, `fix`, `refactor`, `docs`, `chore`, `test`, `ci`). No period at the end of the subject line.

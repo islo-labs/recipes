@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RECIPES = ROOT / "recipes"
 CATALOG = RECIPES / "catalog.yaml"
 SKIP = {"_template", "catalog.yaml"}
-REQUIRED = ("README.md", ".env.example", "run.py")
+REQUIRED = ("README.md", ".env.example", "run.py", "pyproject.toml", "uv.lock")
 
 
 def main() -> int:

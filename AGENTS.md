@@ -4,32 +4,22 @@ Instructions for AI coding agents working in this repository.
 
 ## What this repo is
 
-A public cookbook of **runnable Islo recipes**. Each recipe demonstrates one integration pattern end-to-end. This is **not** the Islo SDK source and **not** the internal `islo-e2e` regression suite.
-
-## Terminology
-
-Use **computer** in all customer-facing prose (READMEs, comments for users, commit messages about docs).
-
-The SDK uses `sandbox` identifiers — keep them in code:
-
-```python
-# Create an Islo computer (SDK: create_sandbox)
-client.sandboxes.create_sandbox(...)
-```
+A public cookbook of **runnable Islo recipes**. Each recipe is a self-contained folder under `recipes/<id>/` with its own `pyproject.toml`, `uv.lock`, and `run.py`. This is **not** the Islo SDK source.
 
 ## How to run a recipe
 
 1. Read [`recipes/catalog.yaml`](recipes/catalog.yaml) to pick a recipe.
 2. Open that recipe's `README.md`.
-3. Export `ISLO_API_KEY` in your shell (or copy `.env.example` to `.env`).
-4. From the repo root:
+3. Export `ISLO_API_KEY` in your shell (or copy `.env.example` to `.env` in the recipe folder).
+4. From the recipe directory:
 
 ```bash
+cd recipes/<recipe-id>
 uv sync
-uv run python recipes/<recipe-id>/run.py
+uv run python run.py
 ```
 
-Or run the full local smoke suite:
+Or run the full local smoke suite from the repo root:
 
 ```bash
 export ISLO_API_KEY=ak_...
@@ -45,24 +35,20 @@ export ISLO_API_KEY=ak_...
 | `ISLO_API_KEY` | Yes | — |
 | `ISLO_BASE_URL` | No | `https://api.islo.dev` |
 
-Local smoke test: `./scripts/test_local.sh` (reads `ISLO_API_KEY` from the shell).
-
-Harbor recipes also need `ISLO_API_URL` set to the same value as `ISLO_BASE_URL`.
-
-GitSource recipes accept:
+GitSource recipes also accept:
 
 | Variable | Default |
 |----------|---------|
 | `ISLO_RECIPES_REPO_URL` | `https://github.com/islo-labs/islo-recipes` |
-| `ISLO_RECIPES_REF` | remote HEAD |
+| `ISLO_RECIPES_REF` | `main` |
 
 ## Rules
 
 - Never commit `.env` files or API keys.
 - Never add local absolute paths (`/Users/...`) to customer-facing files.
-- Every recipe must have: `README.md`, `.env.example`, `run.py`.
+- Every recipe must have: `README.md`, `.env.example`, `run.py`, `pyproject.toml`, `uv.lock`.
 - Add a `catalog.yaml` entry when adding a recipe.
-- Use `computer` not `sandbox` in user-facing text.
+- Keep each recipe self-contained — no shared Python library.
 
 ## Adding or changing a recipe
 

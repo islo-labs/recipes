@@ -6,9 +6,15 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import uuid
 
-from islo_recipes.computer import client_from_env, delete_computer, must_exec
+from dotenv import load_dotenv
+from islo import Islo
+from islo.core.api_error import ApiError
+from islo.custom.exec import exec_and_wait_sync
+
+load_dotenv()
 
 RECIPE_ID = "mount-s3"
 GATEWAY_NAME = "recipes-s3-rw"
@@ -19,6 +25,31 @@ BUCKET = os.environ["S3_BUCKET"]
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 IMAGE = os.environ.get("ISLO_MOUNT_S3_IMAGE", "ghcr.io/islo-labs/islo-runner-mount-s3:latest")
 IAM_READY = os.environ.get("ISLO_IAM_READY", "").lower() in {"1", "true", "yes"}
+
+
+def must_exec(client: Islo, name: str, cmd: str, *, timeout: float = 300) -> None:
+    result = exec_and_wait_sync(client, name, ["sh", "-c", cmd], timeout=timeout)
+    if result.exit_code != 0:
+        raise RuntimeError(
+            f"command failed (exit={result.exit_code})\n  cmd: {cmd!r}\n"
+            f"  stdout: {result.stdout[-2000:]}\n  stderr: {result.stderr[-2000:]}"
+        )
+
+
+def wait_ready(client: Islo, name: str, *, timeout: float = 180) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if client.sandboxes.get_sandbox(name).status == "running":
+            return
+        time.sleep(2)
+    raise TimeoutError(f"computer {name!r} not ready")
+
+
+def delete_computer(client: Islo, name: str) -> None:
+    try:
+        client.sandboxes.delete_sandbox(name)
+    except ApiError:
+        pass
 
 
 def print_trust_policy(external_id: str) -> None:
@@ -39,7 +70,7 @@ def print_trust_policy(external_id: str) -> None:
     print("Set the trust policy on your AWS IAM role, then continue.")
 
 
-def ensure_cloud_role(client):
+def ensure_cloud_role(client: Islo):
     for role in client.cloud_roles.list_cloud_roles():
         if role.role_arn == ROLE_ARN:
             print(f"Reusing cloud role id={role.id} arn={role.role_arn}")
@@ -54,7 +85,7 @@ def ensure_cloud_role(client):
     return role
 
 
-def ensure_gateway(client, cloud_role):
+def ensure_gateway(client: Islo, cloud_role):
     existing = next(
         (g for g in client.gateway_profiles.list_gateway_profiles() if g.name == GATEWAY_NAME),
         None,
@@ -80,20 +111,14 @@ def ensure_gateway(client, cloud_role):
 
 
 def main() -> int:
-    from islo_recipes.computer import load_recipe_env
-
-    load_recipe_env()
-    client = client_from_env()
+    client = Islo()
     role = ensure_cloud_role(client)
     gateway = ensure_gateway(client, role)
-    computer_name = f"recipes-s3-{uuid.uuid4().hex[:8]}"
+    name = f"recipes-s3-{uuid.uuid4().hex[:8]}"
 
-    print(
-        f"Creating computer {computer_name!r} with image {IMAGE!r} "
-        f"and gateway_profile={gateway.name!r}"
-    )
+    print(f"Creating computer {name!r} with image {IMAGE!r} and gateway_profile={gateway.name!r}")
     client.sandboxes.create_sandbox(
-        name=computer_name,
+        name=name,
         image=IMAGE,
         gateway_profile=gateway.name,
         env={
@@ -105,13 +130,11 @@ def main() -> int:
     )
 
     try:
-        from islo_recipes.computer import wait_ready
-
-        wait_ready(client, computer_name, timeout=180)
-        must_exec(client, computer_name, "mount-s3 --version", timeout=60)
+        wait_ready(client, name)
+        must_exec(client, name, "mount-s3 --version", timeout=60)
         must_exec(
             client,
-            computer_name,
+            name,
             "sudo -E env "
             'HOME="$HOME" '
             'S3_BUCKET="$S3_BUCKET" '
@@ -122,14 +145,14 @@ def main() -> int:
         )
         must_exec(
             client,
-            computer_name,
+            name,
             f"bash -lc 'echo hello > {MOUNT_DIR}/test.txt && cat {MOUNT_DIR}/test.txt && rm {MOUNT_DIR}/test.txt'",
             timeout=60,
         )
         print(f"PASS: {RECIPE_ID}")
         return 0
     finally:
-        delete_computer(client, computer_name)
+        delete_computer(client, name)
 
 
 if __name__ == "__main__":

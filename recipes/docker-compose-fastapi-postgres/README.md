@@ -10,7 +10,7 @@ Clone this repo onto a computer with Docker enabled, start FastAPI and Postgres 
 
 - Multi-container workloads on Islo (similar to Harbor compose tasks)
 - Integration tests that need Postgres beside your app
-- Learning `init_capabilities: ["docker"]` on computer create
+- Learning Docker Compose on the default islo-runner image (Docker preinstalled)
 
 ## Prerequisites
 
@@ -30,12 +30,12 @@ Clone this repo onto a computer with Docker enabled, start FastAPI and Postgres 
 ## Quick start
 
 ```bash
-cd islo-recipes
+cd islo-recipes/recipes/docker-compose-fastapi-postgres
 uv sync
-cp recipes/docker-compose-fastapi-postgres/.env.example .env
+cp .env.example .env
 # edit .env
 
-uv run python recipes/docker-compose-fastapi-postgres/run.py
+uv run python run.py
 ```
 
 ## Verify success
@@ -46,8 +46,8 @@ PASS: docker-compose-fastapi-postgres
 
 ## How it works
 
-1. Creates a computer with `GitSource` (clones this repo to `/workspace/islo-recipes`) and `init_capabilities: ["docker"]`.
-2. Installs the Docker Compose v2 plugin if the image does not include it.
+1. Creates a computer with `GitSource` (clones this repo to `/workspace/islo-recipes`). The default islo-runner image includes Docker.
+2. Verifies `docker compose` (preinstalled on islo-runner).
 3. Runs `docker compose up -d --wait` in this recipe directory.
 4. Curls `/health` and `/items` (seed row from `db/init.sql`).
 5. Tears down with `docker compose down -v`.
@@ -58,7 +58,7 @@ PASS: docker-compose-fastapi-postgres
 |---------|-----|
 | Git clone fails | Ensure `ISLO_RECIPES_REPO_URL` is public HTTPS and `ISLO_RECIPES_REF` exists |
 | Compose build slow | First run builds the API image; allow several minutes |
-| `docker compose` missing | Script auto-installs the plugin; check outbound access to GitHub releases |
+| `docker compose` missing | Use the default islo-runner image; it ships the Compose v2 plugin |
 
 ## Related recipes
 

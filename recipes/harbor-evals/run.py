@@ -8,13 +8,14 @@ import shutil
 import subprocess
 import sys
 
-from islo_recipes.computer import load_recipe_env
+from dotenv import load_dotenv
+
+load_dotenv()
 
 RECIPE_ID = "harbor-evals"
 
 
 def main() -> int:
-    load_recipe_env()
     if shutil.which("harbor") is None:
         print("Install Harbor: uv tool install 'harbor[islo]'", file=sys.stderr)
         return 1

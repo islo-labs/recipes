@@ -30,24 +30,24 @@ Confirm Harbor is wired to your Islo account by running the built-in `hello-worl
 ## Quick start
 
 ```bash
-cd islo-recipes
+cd islo-recipes/recipes/harbor-evals
 uv sync
 uv tool install 'harbor[islo]'
 
-cp recipes/harbor-evals/.env.example .env
+cp .env.example .env
 # edit .env
 
 export ISLO_API_KEY=...
 export ISLO_BASE_URL=https://api.islo.dev
 export ISLO_API_URL=https://api.islo.dev
 
-uv run python recipes/harbor-evals/run.py
+uv run python run.py
 ```
 
 ### Full benchmark (optional)
 
 ```bash
-uv run python recipes/harbor-evals/run_terminal_bench.py
+uv run python run_terminal_bench.py
 ```
 
 Override with `HARBOR_DATASET`, `HARBOR_AGENT`, `HARBOR_CONCURRENCY`.

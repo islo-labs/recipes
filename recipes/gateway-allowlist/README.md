@@ -27,12 +27,12 @@ Create a gateway profile that allows PyPI and npm registry traffic, denies every
 ## Quick start
 
 ```bash
-cd islo-recipes
+cd islo-recipes/recipes/gateway-allowlist
 uv sync
-cp recipes/gateway-allowlist/.env.example .env
+cp .env.example .env
 # edit .env with your API key
 
-uv run python recipes/gateway-allowlist/run.py
+uv run python run.py
 ```
 
 ## Verify success

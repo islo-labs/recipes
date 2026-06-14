@@ -32,12 +32,12 @@ Show how to run your application's browser E2E tests on Islo: clone source via G
 ### On Islo (orchestrated)
 
 ```bash
-cd islo-recipes
-uv sync --extra web-app-e2e
-cp recipes/web-app-e2e/.env.example .env
+cd islo-recipes/recipes/web-app-e2e
+uv sync
+cp .env.example .env
 # edit .env
 
-uv run python recipes/web-app-e2e/run.py
+uv run python run.py
 ```
 
 ### Local (no Islo)
@@ -45,10 +45,10 @@ uv run python recipes/web-app-e2e/run.py
 Install deps and Playwright, then run tests against a locally started server:
 
 ```bash
-cd islo-recipes
-uv sync --extra web-app-e2e
-cd recipes/web-app-e2e
+cd islo-recipes/recipes/web-app-e2e
+uv sync --extra app
 uv run playwright install chromium
+uv run playwright install-deps chromium
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 &
 uv run pytest e2e/ -v
 ```
@@ -63,7 +63,7 @@ Pytest output should show one passing test (`test_counter_increments`).
 
 ## How it works
 
-1. Creates a computer with `GitSource` and a setup script that `pip install`s deps and `playwright install chromium`.
+1. Creates a computer with `GitSource` and a setup script that installs Python deps, Chromium, and Playwright OS libraries.
 2. Starts FastAPI with uvicorn in the background on port 8000.
 3. Runs `pytest e2e/` which opens Chromium, clicks **Increment**, and asserts the counter updates.
 
@@ -71,7 +71,7 @@ Pytest output should show one passing test (`test_counter_increments`).
 
 | Symptom | Fix |
 |---------|-----|
-| Playwright browser missing | Setup script runs `playwright install chromium`; ensure enough disk (15GB) |
+| Playwright browser missing | Setup runs `playwright install chromium` and `playwright install-deps` |
 | Server not ready | Check `/tmp/web-app.log` via exec; increase poll timeout |
 | Git clone fails | Verify public repo URL and ref |
 

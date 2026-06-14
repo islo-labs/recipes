@@ -1,0 +1,12 @@
+[project]
+name = "web-app-e2e"
+version = "0.1.0"
+description = "FastAPI app + Playwright browser tests on Islo"
+requires-python = ">=3.10"
+dependencies = [
+  "islo>=0.3.1",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+app = ["fastapi", "uvicorn", "pytest", "playwright", "httpx"]
