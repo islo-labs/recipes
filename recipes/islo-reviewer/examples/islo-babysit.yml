@@ -1,0 +1,20 @@
+name: Babysit CI
+on:
+  workflow_run:
+    workflows: ["Validate"]
+    types: [completed]
+
+jobs:
+  babysit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.event.workflow_run.repository.full_name
+    steps:
+      - uses: islo-labs/islo-reviewer/babysit@v1
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+        env:
+          ISLO_API_KEY: ${{ secrets.ISLO_API_KEY }}

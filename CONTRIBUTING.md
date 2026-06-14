@@ -18,7 +18,7 @@ Programmatic orchestration with the Islo Python SDK. Lives in `recipes/<recipe-i
 
 Success is verified by `PASS: <recipe-id>` in stdout.
 
-### Agent recipes (Claude Code, Codex)
+### Agent recipes
 
 SDK-first examples for running coding agents in an Islo computer. Must include:
 
@@ -28,9 +28,23 @@ SDK-first examples for running coding agents in an Islo computer. Must include:
 | `.env.example` | API keys for the SDK example |
 | `pyproject.toml` | Recipe-local Python dependencies |
 | `uv.lock` | Locked deps (`uv lock` in the recipe dir) |
-| `*/main.py` | Runnable SDK script (e.g. `anthropic_claude_code_in_sandbox/main.py`) |
+| `*/main.py` | Runnable orchestrator (e.g. `claude_agent_sdk_in_sandbox/main.py`) |
 
 No `run.py` or `PASS:` convention required. CLI workflow goes in an optional "Also available via Islo CLI" section.
+
+### Automation recipes
+
+GitHub Actions wiring (no live Islo run from the recipe folder). Must include:
+
+| File | Purpose |
+|------|---------|
+| `README.md` | Quick start + copy-paste workflow steps |
+| `.env.example` | Documents required GitHub secrets |
+| `examples/*.yml` | Workflow files to copy into `.github/workflows/` |
+
+## Register every recipe
+
+Add an entry to [`tests/recipes.yaml`](tests/recipes.yaml) and a row in the root [`README.md`](README.md). Structure tests fail if manifest and disk diverge.
 
 ## README sections — SDK recipes (required order)
 
@@ -46,28 +60,48 @@ No `run.py` or `PASS:` convention required. CLI workflow goes in an optional "Al
 
 ## README sections — agent recipes
 
-Use this section order:
-
 1. Title + one-line description
-2. **How to create a computer with \<Agent\>** — inline SDK snippet
+2. **How to create a computer with …** — inline SDK snippet
 3. **How to run example** — env setup, `uv sync`, run `main.py`
-4. **Also available via Islo CLI** — optional `islo use --agent …` commands
+4. **Also available via Islo CLI** — optional
 5. **Environment variables**
 6. **Troubleshooting**
 7. **Related recipes**
 
-Add the new recipe to the appropriate table in the root [`README.md`](README.md).
+## README sections — automation recipes
+
+1. Title + one-line description
+2. **Quick start** — secrets, copy workflow files
+3. **Environment variables**
+4. **Troubleshooting**
+5. **Related recipes**
 
 ## Before opening a PR
 
-1. SDK recipe: `cd recipes/<id> && uv sync && uv run python run.py` — confirm `PASS: <recipe-id>`.
-2. Agent recipe: verify README steps are accurate; run SDK example if present.
-3. From repo root: `uv sync --extra dev && uv run ruff check recipes`
+1. Register the recipe in `tests/recipes.yaml`.
+2. From repo root:
+
+```bash
+uv sync --extra dev
+uv run pytest tests/test_structure.py -v
+uv run ruff check recipes tests
+```
+
+3. If you have API keys, run the live smoke test for your recipe:
+
+```bash
+export ISLO_API_KEY=...
+uv run pytest tests/test_smoke_live.py -v -k <recipe-id>
+```
+
 4. Do not commit `.env`, secrets, or internal-only paths.
 
 ## CI
 
-SDK recipes run in the nightly [`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml) workflow. Agent recipes are manual (require provider API keys).
+| Workflow | Runs |
+|----------|------|
+| [`validate.yml`](.github/workflows/validate.yml) | Ruff + structure tests on every PR |
+| [`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml) | Live smoke (SDK nightly; agents/AWS via workflow dispatch) |
 
 ## Python dependencies
 
@@ -81,8 +115,8 @@ After changing deps: `cd recipes/<id> && uv lock`.
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ```
-feat: add anthropic-claude-code-in-sandbox recipe
-fix: install Playwright system deps on Bookworm
+feat: add claude-agent-sdk-in-sandbox recipe
+test: add recipe structure and smoke tests
 docs: update agent recipe quick start
 ```
 

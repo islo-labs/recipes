@@ -18,12 +18,12 @@ uv sync
 uv run python run.py
 ```
 
-**Agent recipes** — SDK examples with an optional CLI workflow:
+**Agent recipes** — Islo SDK + agent inside a computer:
 
 ```bash
-cd recipes/anthropic-claude-code-in-sandbox
+cd recipes/claude-agent-sdk-in-sandbox
 uv sync
-uv run python anthropic_claude_code_in_sandbox/main.py
+uv run python claude_agent_sdk_in_sandbox/main.py
 ```
 
 See each recipe's `README.md` for full steps.
@@ -41,33 +41,48 @@ Programmatic examples using the [Islo Python SDK](https://pypi.org/project/islo/
 
 GitSource recipes clone this repo — push `main` before running `playwright` or `docker-compose-fastapi-postgres`.
 
-## Claude Code recipes
+## Agent recipes
 
-Run [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in Islo with `islo use --agent claude`. See [agent integration docs](https://docs.islo.dev/cli/agent-integration).
-
-| Recipe | Description |
-|--------|-------------|
-| [`anthropic-claude-code-in-sandbox`](recipes/anthropic-claude-code-in-sandbox/) | Run Claude Code in a computer via the Islo Python SDK |
-
-## Codex recipes
-
-Run [OpenAI Codex](https://github.com/openai/codex) in Islo with `islo use --agent codex`.
+Run coding agents inside an Islo computer via the Python SDK.
 
 | Recipe | Description |
 |--------|-------------|
-| [`openai-codex-in-sandbox`](recipes/openai-codex-in-sandbox/) | Run Codex in a computer via the Islo Python SDK |
+| [`anthropic-claude-code-in-sandbox`](recipes/anthropic-claude-code-in-sandbox/) | Claude Code CLI |
+| [`openai-codex-in-sandbox`](recipes/openai-codex-in-sandbox/) | OpenAI Codex CLI |
+| [`claude-agent-sdk-in-sandbox`](recipes/claude-agent-sdk-in-sandbox/) | Claude Agent SDK (`query()`) |
 
-## Validation
+CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent codex`. See [agent integration](https://docs.islo.dev/cli/agent-integration).
 
-From the repo root (requires `uv sync --extra dev`):
+## Automation recipes
+
+| Recipe | Description |
+|--------|-------------|
+| [`islo-reviewer`](recipes/islo-reviewer/) | PR review and CI babysit with [islo-reviewer](https://github.com/islo-labs/islo-reviewer) |
+
+## Testing
+
+**Local structure tests** (no API keys):
 
 ```bash
-uv run ruff check recipes
+uv sync --extra dev
+uv run pytest tests/test_structure.py -v
+uv run ruff check recipes tests
 ```
+
+**Live smoke tests** (requires `ISLO_API_KEY`; agent/AWS recipes need extra secrets):
+
+```bash
+export ISLO_API_KEY="..."
+uv run pytest tests/test_smoke_live.py -v -m live          # all live tests
+uv run pytest tests/test_smoke_live.py -v -m "not live_agent and not live_aws"  # SDK only
+uv run pytest tests/test_smoke_live.py -v -k gateway-allowlist  # single recipe
+```
+
+CI runs structure tests on every PR ([`validate.yml`](.github/workflows/validate.yml)). Live smoke runs on a schedule and via workflow dispatch ([`recipes-smoke.yml`](.github/workflows/recipes-smoke.yml)).
 
 ## Add a recipe
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Register new recipes in [`tests/recipes.yaml`](tests/recipes.yaml).
 
 ## Links
 

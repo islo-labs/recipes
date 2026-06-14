@@ -92,5 +92,5 @@ See [Agent integration](https://docs.islo.dev/cli/agent-integration).
 
 ## Related recipes
 
-- [`openai-codex-in-sandbox`](../openai-codex-in-sandbox/) — OpenAI Codex on Islo
-- [`playwright`](../playwright/) — SDK recipe with GitSource + browser tests
+- [`claude-agent-sdk-in-sandbox`](../claude-agent-sdk-in-sandbox/) — Claude Agent SDK (`query()`)
+- [`islo-reviewer`](../islo-reviewer/) — PR review GitHub Action

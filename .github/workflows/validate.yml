@@ -28,4 +28,7 @@ jobs:
           fi
 
       - name: Ruff check
-        run: uv run ruff check recipes
+        run: uv run ruff check recipes tests
+
+      - name: Recipe structure tests
+        run: uv run pytest tests/test_structure.py -v

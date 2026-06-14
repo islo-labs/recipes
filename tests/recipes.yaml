@@ -1,0 +1,52 @@
+recipes:
+  - id: gateway-allowlist
+    type: sdk
+    entrypoint: run.py
+    pass_output: "PASS: gateway-allowlist"
+    live: smoke
+
+  - id: docker-compose-fastapi-postgres
+    type: sdk
+    entrypoint: run.py
+    pass_output: "PASS: docker-compose-fastapi-postgres"
+    live: smoke
+
+  - id: playwright
+    type: sdk
+    entrypoint: run.py
+    pass_output: "PASS: playwright"
+    live: smoke
+
+  - id: mount-s3
+    type: sdk
+    entrypoint: run.py
+    pass_output: "PASS: mount-s3"
+    live: aws
+
+  - id: anthropic-claude-code-in-sandbox
+    type: agent
+    entrypoint: anthropic_claude_code_in_sandbox/main.py
+    success_pattern: "Done."
+    live: agent
+    env_required: [ANTHROPIC_API_KEY]
+
+  - id: openai-codex-in-sandbox
+    type: agent
+    entrypoint: openai_codex_in_sandbox/main.py
+    success_pattern: "Done."
+    live: agent
+    env_required: [OPENAI_API_KEY]
+
+  - id: claude-agent-sdk-in-sandbox
+    type: agent
+    entrypoint: claude_agent_sdk_in_sandbox/main.py
+    success_pattern: "Done."
+    live: agent
+    env_required: [ANTHROPIC_API_KEY]
+
+  - id: islo-reviewer
+    type: automation
+    workflow_examples:
+      - examples/islo-review.yml
+      - examples/islo-babysit.yml
+    review_example: examples/REVIEW.md

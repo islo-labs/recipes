@@ -6,18 +6,17 @@ Instructions for AI coding agents working in this repository.
 
 A public cookbook of **Islo examples** under `recipes/<id>/`. This is **not** the Islo SDK source.
 
-There are two recipe styles:
+Recipe types:
 
 | Style | Entrypoint | Success signal |
 |-------|------------|----------------|
 | **SDK** | `run.py` | `PASS: <recipe-id>` in stdout |
-| **Agent** (Claude Code, Codex) | `*/main.py` (SDK); CLI optional | README expected output |
+| **Agent** | `*/main.py` | `Done.` in stdout (live smoke) |
+| **Automation** | workflow YAML in `examples/` | Structure tests only |
+
+All recipes are listed in [`tests/recipes.yaml`](tests/recipes.yaml).
 
 ## How to run an SDK recipe
-
-1. Open the recipe's `README.md`.
-2. Export `ISLO_API_KEY` (or copy `.env.example` to `.env`).
-3. From the recipe directory:
 
 ```bash
 cd recipes/<recipe-id>
@@ -25,13 +24,9 @@ uv sync
 uv run python run.py
 ```
 
-4. Success = `PASS: <recipe-id>`.
+Success = `PASS: <recipe-id>`.
 
 ## How to run an agent recipe
-
-1. Open the recipe's `README.md`.
-2. Copy `.env.example` to `.env` and set API keys.
-3. From the recipe directory:
 
 ```bash
 cd recipes/<recipe-id>
@@ -39,37 +34,44 @@ uv sync
 uv run python <package>/main.py
 ```
 
-4. For interactive use, see the "Also available via Islo CLI" section in the README.
+See the README for API keys. Optional CLI: `islo use --agent …`.
+
+## How to test (no API keys)
+
+From repo root:
+
+```bash
+uv sync --extra dev
+uv run pytest tests/test_structure.py -v
+uv run ruff check recipes tests
+```
+
+Live smoke (needs `ISLO_API_KEY`):
+
+```bash
+uv run pytest tests/test_smoke_live.py -v -k <recipe-id>
+```
 
 ## Required environment
 
 | Variable | Required | Default |
 |----------|----------|---------|
-| `ISLO_API_KEY` | SDK recipes + agent SDK examples | — |
+| `ISLO_API_KEY` | Live tests + SDK/agent recipes | — |
 | `ISLO_BASE_URL` | No | `https://api.islo.dev` |
 
-GitSource SDK recipes also accept:
+GitSource SDK recipes also accept `ISLO_RECIPES_REPO_URL` (default `https://github.com/islo-labs/recipes`) and `ISLO_RECIPES_REF` (default `main`).
 
-| Variable | Default |
-|----------|---------|
-| `ISLO_RECIPES_REPO_URL` | `https://github.com/islo-labs/recipes` |
-| `ISLO_RECIPES_REF` | `main` |
-
-Agent recipes may require `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` — see each recipe's README.
+Agent recipes may require `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
 
 ## Rules
 
 - Never commit `.env` files or API keys.
 - Never add local absolute paths (`/Users/...`) to customer-facing files.
-- SDK recipes must have: `README.md`, `.env.example`, `run.py`, `pyproject.toml`, `uv.lock`.
-- Agent recipes must have: `README.md`, `.env.example` (at minimum).
+- Register new recipes in `tests/recipes.yaml`.
 - Keep each recipe self-contained — no shared Python library.
-
-## Adding or changing a recipe
-
-Follow [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## External docs
 
 - [Islo documentation](https://docs.islo.dev)
 - [Agent integration](https://docs.islo.dev/cli/agent-integration)
+- [islo-reviewer](https://github.com/islo-labs/islo-reviewer)
