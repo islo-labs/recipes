@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
     "@ai-sdk/harness",
     "@ai-sdk/harness-codex",
     "@islo-labs/ai-sdk-sandbox",
-    "ws",
   ],
 };
 

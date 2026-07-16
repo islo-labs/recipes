@@ -10,10 +10,7 @@
     "build": "npm run build -w @islo-labs/ai-sdk-sandbox && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/**/*.test.ts",
-    "probe:wss": "node scripts/probe-wss-share.mjs",
-    "cleanup:sandboxes": "node scripts/cleanup-harness-sandboxes.mjs",
-    "cleanup:sandboxes:dry-run": "node scripts/cleanup-harness-sandboxes.mjs --dry-run"
+    "test": "node --experimental-strip-types --test lib/**/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/harness": "^1.0.33",
@@ -22,12 +19,10 @@
     "@ai-sdk/react": "^4.0.23",
     "@islo-labs/ai-sdk-sandbox": "*",
     "@islo-labs/sdk": "^0.0.30",
-    "@types/ws": "^8.18.1",
     "ai": "^7.0.22",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "ws": "^8.21.1"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

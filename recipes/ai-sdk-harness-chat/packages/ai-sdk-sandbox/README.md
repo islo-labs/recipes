@@ -53,6 +53,7 @@ export const agent = new HarnessAgent({
 | `snapshotName` | Restore from snapshot |
 | `gatewayProfile` | Gateway profile at create time |
 | `lifecycle` | Pause/delete/auto-resume policy |
+| `init` | Sandbox init plan (default `minimal` — no SSH/Docker bootstrap) |
 | `ports` | Bridge ports (default `4000`) |
 | `shareTtlSeconds` | Public share TTL |
 

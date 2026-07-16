@@ -4,7 +4,7 @@ import type {
   HarnessV1SandboxProvider,
 } from "@ai-sdk/harness";
 import type { Experimental_SandboxSession } from "@ai-sdk/provider-utils";
-import { Islo } from "@islo-labs/sdk";
+import { Islo, type IsloApi } from "@islo-labs/sdk";
 import { IsloNetworkSandboxSession } from "./islo-network-sandbox-session.js";
 
 /** Codex harness bridge port exposed via Islo shares. */
@@ -18,6 +18,11 @@ export const ISLO_AI_SDK_RUNNER_IMAGE =
 export const ISLO_DEFAULT_WORKDIR = "/workspace";
 
 export const ISLO_SANDBOX_NAME_PREFIX = "harness-chat-";
+
+/** No SSH/Docker bootstrap — faster startup than Full init on islo-runner. */
+export const DEFAULT_SANDBOX_INIT: IsloApi.SandboxInit.Minimal = {
+  type: "minimal",
+};
 
 const DEFAULT_SHARE_TTL_SECONDS = 86_400;
 const ISLO_PROVIDER_ID = "islo";
@@ -51,6 +56,8 @@ export interface IsloSandboxSettings {
     timeoutMs?: number;
     pollIntervalMs?: number;
   };
+  /** Init plan at create time. Defaults to {@link DEFAULT_SANDBOX_INIT}. */
+  init?: IsloApi.SandboxInit;
 }
 
 export interface IsloClientContext {
@@ -383,7 +390,7 @@ async function createOrReuseSandbox(options: {
       gateway_profile: options.settings.gatewayProfile ?? null,
       internet_enabled: options.settings.internetEnabled ?? true,
       lifecycle: options.settings.lifecycle ?? null,
-      init: { type: "minimal" },
+      init: options.settings.init ?? DEFAULT_SANDBOX_INIT,
       setup_scripts: null,
     },
     { abortSignal: options.abortSignal },

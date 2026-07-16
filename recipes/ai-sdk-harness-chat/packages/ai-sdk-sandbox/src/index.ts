@@ -3,6 +3,7 @@ export {
   deleteSandboxByName,
   formatIsloError,
   IsloSandboxProvider,
+  DEFAULT_SANDBOX_INIT,
   ISLO_AI_SDK_BRIDGE_PORT,
   ISLO_AI_SDK_RUNNER_IMAGE,
   ISLO_DEFAULT_WORKDIR,
