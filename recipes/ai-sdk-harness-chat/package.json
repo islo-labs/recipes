@@ -1,0 +1,39 @@
+{
+  "name": "ai-sdk-harness-chat",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test lib/**/*.test.ts",
+    "probe:wss": "node scripts/probe-wss-share.mjs",
+    "cleanup:sandboxes": "node scripts/cleanup-harness-sandboxes.mjs",
+    "cleanup:sandboxes:dry-run": "node scripts/cleanup-harness-sandboxes.mjs --dry-run"
+  },
+  "dependencies": {
+    "@ai-sdk/harness": "^1.0.33",
+    "@ai-sdk/harness-codex": "^1.0.35",
+    "@ai-sdk/provider-utils": "^5.0.10",
+    "@ai-sdk/react": "^4.0.23",
+    "@islo-labs/ai-sdk-sandbox": "github:islo-labs/ai-sdk-sandbox#94aa841",
+    "@islo-labs/sdk": "^0.0.30",
+    "@types/ws": "^8.18.1",
+    "ai": "^7.0.22",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

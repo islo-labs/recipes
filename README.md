@@ -53,6 +53,12 @@ Run coding agents inside an Islo computer via the Python SDK.
 
 CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent codex`. See [agent integration](https://docs.islo.dev/cli/agent-integration).
 
+## Web app recipes
+
+| Recipe | Description |
+|--------|-------------|
+| [`ai-sdk-harness-chat`](recipes/ai-sdk-harness-chat/) | Next.js chat using AI SDK HarnessAgent and Codex in an Islo sandbox |
+
 ## Testing
 
 **Local validation** (no API keys):
