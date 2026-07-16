@@ -1,6 +1,6 @@
 # AI SDK HarnessAgent chat on Islo
 
-This Next.js example runs **Codex** through the experimental AI SDK [`HarnessAgent`](https://ai-sdk.dev/docs/ai-sdk-harnesses/harness-agent) inside an **Islo sandbox**, using `@islo-labs/ai-sdk-sandbox`.
+This Next.js example runs **Codex** through the experimental AI SDK [`HarnessAgent`](https://ai-sdk.dev/docs/ai-sdk-harnesses/harness-agent) inside an **Islo sandbox**, using the bundled `@islo-labs/ai-sdk-sandbox` provider in `packages/ai-sdk-sandbox/`.
 
 ```
 useChat → /api/chat → HarnessAgent({ harness: codex, sandbox: createIsloSandbox() })
@@ -55,6 +55,7 @@ npm run cleanup:sandboxes:dry-run
 
 | Path | Role |
 |------|------|
+| `packages/ai-sdk-sandbox/` | Bundled Islo sandbox provider (customer handoff, not published to npm) |
 | `lib/agent.ts` | `HarnessAgent` wired to `createIsloSandbox()` |
 | `lib/harness-session.ts` | In-memory `resumeFrom` store between HTTP requests |
 | `app/api/chat/route.ts` | Chat stream, detach/resume, sandbox cleanup |
@@ -98,8 +99,6 @@ The provider retries share propagation with exponential backoff instead of a fix
 ## Experimental caveat
 
 `@ai-sdk/harness` and `@ai-sdk/harness-codex` are **experimental**. Expect API movement.
-
-The example currently pins `@islo-labs/ai-sdk-sandbox` to the package repository commit associated with its initial release. Switch to the npm version after `0.1.0` is published.
 
 ## Verify success
 
