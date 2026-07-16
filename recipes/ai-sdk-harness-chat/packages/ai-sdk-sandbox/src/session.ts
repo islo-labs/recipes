@@ -9,6 +9,7 @@ import {
   formatIsloError,
   ISLO_AI_SDK_BRIDGE_PORT,
   ISLO_AI_SDK_RUNNER_IMAGE,
+  ISLO_CODEX_HOME,
   ISLO_DEFAULT_WORKDIR,
   isNotFoundError,
   shareUrlToWebSocketUrl,
@@ -32,7 +33,6 @@ import {
   waitForShareReady,
   type ShareCacheEntry,
 } from "./shares.js";
-import { ensureRunnerHarnessReady, ISLO_CODEX_HOME } from "./toolchain.js";
 import type { IsloSandboxSettings, LifecyclePolicy } from "./types.js";
 
 export class IsloNetworkSandboxSession implements HarnessV1NetworkSandboxSession {
@@ -448,13 +448,6 @@ export async function createIsloHarnessSandboxSession(options: {
       ready.workdir ??
       ISLO_DEFAULT_WORKDIR;
 
-    await ensureRunnerHarnessReady(
-      options.ctx,
-      ready.name,
-      defaultWorkingDirectory,
-      options.abortSignal,
-    );
-
     const session = new IsloNetworkSandboxSession(
       options.ctx,
       ready.name,
@@ -506,13 +499,6 @@ export async function resumeIsloHarnessSandboxSession(options: {
     options.settings.workingDirectory ??
     ready.workdir ??
     ISLO_DEFAULT_WORKDIR;
-
-  await ensureRunnerHarnessReady(
-    options.ctx,
-    ready.name,
-    defaultWorkingDirectory,
-    options.abortSignal,
-  );
 
   const sessionSettings = resolveSessionSettings(options.settings);
   const ports = options.ports ?? options.settings.ports ?? [ISLO_AI_SDK_BRIDGE_PORT];

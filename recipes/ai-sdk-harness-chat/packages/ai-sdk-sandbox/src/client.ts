@@ -12,6 +12,9 @@ export const ISLO_AI_SDK_RUNNER_IMAGE =
 /** Fallback when the sandbox record has no workdir. */
 export const ISLO_DEFAULT_WORKDIR = "/workspace";
 
+/** Platform-managed Codex config directory inside Islo sandboxes. */
+export const ISLO_CODEX_HOME = "/home/islo/.codex";
+
 export const ISLO_SANDBOX_NAME_PREFIX = "harness-chat-";
 
 export const DEFAULT_SHARE_TTL_SECONDS = 86_400;

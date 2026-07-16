@@ -16,8 +16,6 @@ export {
   sandboxNameForSession,
   shareUrlToWebSocketUrl,
 } from "./client.js";
-export { shellCommandArgs } from "./exec.js";
-export { extractExecSseMessage } from "./exec-sse.js";
 export type { IsloSandboxSettings } from "./types.js";
 
 export async function deleteSandboxByName(

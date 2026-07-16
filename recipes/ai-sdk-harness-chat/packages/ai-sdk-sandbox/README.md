@@ -64,6 +64,4 @@ export const agent = new HarnessAgent({
 
 ## Image (required)
 
-Sandboxes **must** use `ghcr.io/islo-labs/islo-ai-sdk-runner:latest`. The provider checks for the runner bootstrap marker at create/resume time and rejects other images.
-
-The image ships pre-warmed Node, pnpm, the Codex bridge, and headless feature defaults. Platform auth and provider config live in `~/.codex/config.toml` (managed by Islo, not the image).
+Sandboxes **must** use `ghcr.io/islo-labs/islo-ai-sdk-runner:latest`. The image ships pre-warmed Node, pnpm, the Codex bridge, and headless Codex defaults under `/opt/islo/codex-config/`. Platform auth lives in `~/.codex/config.toml` (managed by Islo).

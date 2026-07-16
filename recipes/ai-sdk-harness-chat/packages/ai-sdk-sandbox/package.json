@@ -23,8 +23,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc -p tsconfig.build.json --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "type-check": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@islo-labs/sdk": "^0.0.30"
@@ -38,7 +37,6 @@
     "@ai-sdk/provider-utils": "^5.0.10",
     "@types/node": "^22",
     "tsup": "^8.5.1",
-    "tsx": "^4.19.4",
     "typescript": "^5"
   },
   "engines": {
