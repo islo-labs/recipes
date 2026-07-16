@@ -8,6 +8,7 @@ export {
   resumeIsloHarnessSandboxSession,
 } from "./session.js";
 export {
+  formatIsloError,
   ISLO_AI_SDK_BRIDGE_PORT,
   ISLO_AI_SDK_RUNNER_IMAGE,
   ISLO_DEFAULT_WORKDIR,
@@ -15,12 +16,6 @@ export {
   sandboxNameForSession,
   shareUrlToWebSocketUrl,
 } from "./client.js";
-export {
-  formatIsloError,
-  IsloSandboxError,
-  isNotFoundError,
-  toIsloSandboxError,
-} from "./errors.js";
 export { shellCommandArgs } from "./exec.js";
 export { extractExecSseMessage } from "./exec-sse.js";
 export type { IsloSandboxSettings } from "./types.js";

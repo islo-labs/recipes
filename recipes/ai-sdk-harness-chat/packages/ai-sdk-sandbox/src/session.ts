@@ -6,14 +6,14 @@ import { HarnessCapabilityUnsupportedError } from "@ai-sdk/harness";
 import type { HarnessV1NetworkSandboxSession } from "@ai-sdk/harness";
 import {
   DEFAULT_SHARE_TTL_SECONDS,
-  DEFAULT_TOOLCHAIN_SETUP_SCRIPTS,
+  formatIsloError,
   ISLO_AI_SDK_BRIDGE_PORT,
   ISLO_AI_SDK_RUNNER_IMAGE,
   ISLO_DEFAULT_WORKDIR,
+  isNotFoundError,
   shareUrlToWebSocketUrl,
   type IsloClientContext,
 } from "./client.js";
-import { toIsloSandboxError } from "./errors.js";
 import {
   readSandboxFile,
   resolveSandboxPath,
@@ -32,14 +32,8 @@ import {
   waitForShareReady,
   type ShareCacheEntry,
 } from "./shares.js";
-import {
-  createSandboxFromSnapshotOrImage,
-  ensureSnapshotForIdentity,
-  getReadySnapshot,
-  waitForSnapshotReady,
-} from "./snapshots.js";
-import { ensureHarnessToolchain, ISLO_CODEX_HOME } from "./toolchain.js";
-import type { IsloSandboxSettings } from "./types.js";
+import { ensureRunnerHarnessReady, ISLO_CODEX_HOME } from "./toolchain.js";
+import type { IsloSandboxSettings, LifecyclePolicy } from "./types.js";
 
 export class IsloNetworkSandboxSession implements HarnessV1NetworkSandboxSession {
   readonly id: string;
@@ -344,7 +338,6 @@ interface ResolvedSessionSettings {
   gatewayProfile?: string | null;
   internetEnabled: boolean;
   lifecycle?: IsloSandboxSettings["lifecycle"];
-  setupScripts: ReadonlyArray<{ name: string; script: string }>;
   shareTtlSeconds: number;
   shareReadiness: NonNullable<IsloSandboxSettings["shareReadiness"]>;
 }
@@ -357,10 +350,54 @@ function resolveSessionSettings(
     gatewayProfile: settings.gatewayProfile,
     internetEnabled: settings.internetEnabled ?? true,
     lifecycle: settings.lifecycle,
-    setupScripts: settings.setupScripts ?? DEFAULT_TOOLCHAIN_SETUP_SCRIPTS,
     shareTtlSeconds: settings.shareTtlSeconds ?? DEFAULT_SHARE_TTL_SECONDS,
     shareReadiness: settings.shareReadiness ?? {},
   };
+}
+
+async function createOrReuseSandbox(options: {
+  ctx: IsloClientContext;
+  sandboxName: string;
+  image: string;
+  snapshotName?: string | null;
+  gatewayProfile?: string | null;
+  internetEnabled?: boolean;
+  lifecycle?: LifecyclePolicy | null;
+  abortSignal?: AbortSignal;
+}): Promise<{ name: string; isFreshCreate: boolean }> {
+  try {
+    const existing = await options.ctx.client.sandboxes.getSandbox(
+      { sandbox_name: options.sandboxName },
+      { abortSignal: options.abortSignal },
+    );
+    return { name: existing.name, isFreshCreate: false };
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  const created = await options.ctx.client.sandboxes.createSandbox(
+    {
+      name: options.sandboxName,
+      image: options.image,
+      snapshot_name: options.snapshotName ?? null,
+      gateway_profile: options.gatewayProfile ?? null,
+      internet_enabled: options.internetEnabled ?? true,
+      lifecycle: options.lifecycle ?? null,
+      init: { type: "minimal" },
+      setup_scripts: null,
+    },
+    { abortSignal: options.abortSignal },
+  );
+
+  const ready = await waitUntilSandboxReady(
+    options.ctx,
+    created.name,
+    options.abortSignal,
+  );
+
+  return { name: ready.name, isFreshCreate: true };
 }
 
 export async function createIsloHarnessSandboxSession(options: {
@@ -369,7 +406,6 @@ export async function createIsloHarnessSandboxSession(options: {
   settings: IsloSandboxSettings;
   abortSignal?: AbortSignal;
   ports?: readonly number[];
-  identity?: string;
   onFirstCreate?: (
     session: Experimental_SandboxSession,
     opts: { abortSignal?: AbortSignal },
@@ -380,41 +416,24 @@ export async function createIsloHarnessSandboxSession(options: {
 
   const sessionSettings = resolveSessionSettings(options.settings);
   const ports = options.ports ?? options.settings.ports ?? [ISLO_AI_SDK_BRIDGE_PORT];
-  let snapshotName: string | null =
-    options.settings.snapshotName ?? null;
-  let usedSnapshot = false;
-
-  if (options.identity) {
-    const readySnapshot = await getReadySnapshot(
-      options.ctx,
-      options.identity,
-      options.abortSignal,
-    );
-    if (readySnapshot) {
-      snapshotName = readySnapshot;
-      usedSnapshot = true;
-    }
-  }
-
   let isFreshCreate = false;
   let sandboxName = options.sandboxName;
 
   try {
-    const result = await createSandboxFromSnapshotOrImage({
+    const result = await createOrReuseSandbox({
       ctx: options.ctx,
       sandboxName,
       image: sessionSettings.image,
-      snapshotName,
+      snapshotName: options.settings.snapshotName,
       gatewayProfile: sessionSettings.gatewayProfile,
       internetEnabled: sessionSettings.internetEnabled,
       lifecycle: sessionSettings.lifecycle,
-      setupScripts: usedSnapshot || snapshotName ? undefined : sessionSettings.setupScripts,
       abortSignal: options.abortSignal,
     });
     sandboxName = result.name;
     isFreshCreate = result.isFreshCreate;
   } catch (error) {
-    throw toIsloSandboxError(error, sandboxName);
+    throw new Error(formatIsloError(error));
   }
 
   try {
@@ -429,7 +448,7 @@ export async function createIsloHarnessSandboxSession(options: {
       ready.workdir ??
       ISLO_DEFAULT_WORKDIR;
 
-    await ensureHarnessToolchain(
+    await ensureRunnerHarnessReady(
       options.ctx,
       ready.name,
       defaultWorkingDirectory,
@@ -445,27 +464,7 @@ export async function createIsloHarnessSandboxSession(options: {
       options.ownsLifecycle,
     );
 
-    if (isFreshCreate && options.identity && options.onFirstCreate && !usedSnapshot) {
-      try {
-        await options.onFirstCreate(session.restricted(), {
-          abortSignal: options.abortSignal,
-        });
-        const snapshot = await ensureSnapshotForIdentity({
-          ctx: options.ctx,
-          identity: options.identity,
-          templateSandboxName: ready.name,
-          abortSignal: options.abortSignal,
-        });
-        await waitForSnapshotReady(
-          options.ctx,
-          snapshot,
-          options.abortSignal,
-        ).catch(() => undefined);
-      } catch (error) {
-        await session.destroy().catch(() => undefined);
-        throw error;
-      }
-    } else if (isFreshCreate && options.onFirstCreate && !usedSnapshot) {
+    if (isFreshCreate && options.onFirstCreate) {
       try {
         await options.onFirstCreate(session.restricted(), {
           abortSignal: options.abortSignal,
@@ -483,7 +482,7 @@ export async function createIsloHarnessSandboxSession(options: {
         .deleteSandbox({ sandbox_name: sandboxName })
         .catch(() => undefined);
     }
-    throw toIsloSandboxError(error, sandboxName);
+    throw new Error(formatIsloError(error));
   }
 }
 
@@ -508,7 +507,7 @@ export async function resumeIsloHarnessSandboxSession(options: {
     ready.workdir ??
     ISLO_DEFAULT_WORKDIR;
 
-  await ensureHarnessToolchain(
+  await ensureRunnerHarnessReady(
     options.ctx,
     ready.name,
     defaultWorkingDirectory,

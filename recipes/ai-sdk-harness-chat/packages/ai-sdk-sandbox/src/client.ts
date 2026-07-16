@@ -14,15 +14,6 @@ export const ISLO_DEFAULT_WORKDIR = "/workspace";
 
 export const ISLO_SANDBOX_NAME_PREFIX = "harness-chat-";
 
-export const SNAPSHOT_NAME_PREFIX = "harness-template-";
-
-export const READY_SANDBOX_STATUSES = new Set(["running"]);
-export const WAIT_SANDBOX_STATUSES = new Set([
-  "starting",
-  "creating",
-  "paused",
-]);
-
 export const DEFAULT_SHARE_TTL_SECONDS = 86_400;
 
 export const DEFAULT_SHARE_READINESS = {
@@ -32,13 +23,6 @@ export const DEFAULT_SHARE_READINESS = {
   pollIntervalMs: 500,
 } as const;
 
-export const DEFAULT_TOOLCHAIN_SETUP_SCRIPTS = [
-  {
-    name: "Enable pnpm",
-    script: "corepack enable && corepack prepare pnpm@10.15.0 --activate",
-  },
-] as const;
-
 const SANDBOX_NAME_MAX_LENGTH = 63;
 const HASH_SUFFIX_LENGTH = 10;
 
@@ -46,14 +30,6 @@ export interface IsloClientContext {
   readonly client: Islo;
   readonly computeUrl: string;
   readonly controlUrl: string;
-}
-
-export function hashIdentity(identity: string): string {
-  return createHash("sha256").update(identity).digest("hex").slice(0, 12);
-}
-
-export function snapshotNameForIdentity(identity: string): string {
-  return `${SNAPSHOT_NAME_PREFIX}${hashIdentity(identity)}`;
 }
 
 export function sandboxNameForSession(sessionId: string): string {
@@ -167,4 +143,52 @@ export async function fetchCompute(
   }
 
   return response;
+}
+
+export function isNotFoundError(error: unknown): boolean {
+  if (error == null || typeof error !== "object") {
+    return false;
+  }
+  if ("statusCode" in error && error.statusCode === 404) {
+    return true;
+  }
+  if (error instanceof Error && /not found/i.test(error.message)) {
+    return true;
+  }
+  const body =
+    "body" in error && error.body != null && typeof error.body === "object"
+      ? (error.body as { code?: string; message?: string })
+      : undefined;
+  return body?.code === "NOT_FOUND" || /not found/i.test(body?.message ?? "");
+}
+
+export function formatIsloError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (error == null || typeof error !== "object") {
+    return "Islo request failed";
+  }
+
+  const statusCode =
+    "statusCode" in error && typeof error.statusCode === "number"
+      ? error.statusCode
+      : undefined;
+  const body =
+    "body" in error && error.body != null && typeof error.body === "object"
+      ? (error.body as { code?: string; message?: string })
+      : undefined;
+
+  if (statusCode === 429 || body?.code === "RATE_LIMITED") {
+    return (
+      "Islo sandbox limit reached. Delete unused sandboxes or run cleanup " +
+      "for orphaned harness-chat-* resources."
+    );
+  }
+
+  if (body?.message) {
+    return body.message;
+  }
+
+  return "Islo request failed";
 }

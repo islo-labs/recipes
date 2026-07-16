@@ -18,9 +18,9 @@ export interface IsloSandboxSettings {
   client?: Islo;
   /** Wrap an existing sandbox by name instead of creating one. */
   sandboxName?: string;
-  /** Runner image for created sandboxes. */
+  /** Runner image for created sandboxes. Defaults to islo-ai-sdk-runner. */
   image?: string;
-  /** Restore from snapshot instead of fresh image create. */
+  /** Optional manual snapshot restore at sandbox creation. */
   snapshotName?: string;
   /** Gateway profile attached at sandbox creation. */
   gatewayProfile?: string | null;
@@ -28,8 +28,6 @@ export interface IsloSandboxSettings {
   internetEnabled?: boolean;
   /** Lifecycle policy applied at sandbox creation. */
   lifecycle?: LifecyclePolicy | null;
-  /** Setup scripts run once at sandbox creation. */
-  setupScripts?: ReadonlyArray<{ name: string; script: string }>;
   /** Default workdir for relative file/exec paths. */
   workingDirectory?: string;
   /** Ports exposed for bridge harnesses. */
@@ -43,21 +41,4 @@ export interface IsloSandboxSettings {
     timeoutMs?: number;
     pollIntervalMs?: number;
   };
-  /** Sandbox name prefix for create-new mode. */
-  sandboxNamePrefix?: string;
-  /** Default lifecycle ownership: provider deletes on destroy. */
-  ownsLifecycle?: boolean;
-}
-
-export interface CreateSessionInternalOptions {
-  sandboxName: string;
-  abortSignal?: AbortSignal;
-  ports?: readonly number[];
-  identity?: string;
-  onFirstCreate?: (
-    session: import("@ai-sdk/provider-utils").Experimental_SandboxSession,
-    opts: { abortSignal?: AbortSignal },
-  ) => Promise<void>;
-  ownsLifecycle: boolean;
-  defaultWorkingDirectory: string;
 }

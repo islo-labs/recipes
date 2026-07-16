@@ -34,7 +34,6 @@ export function createIsloSandbox(
         settings,
         abortSignal: options?.abortSignal,
         ports: settings.ports ?? [ISLO_AI_SDK_BRIDGE_PORT],
-        identity: options?.identity,
         onFirstCreate: options?.onFirstCreate,
         ownsLifecycle,
       });

@@ -62,6 +62,8 @@ export const agent = new HarnessAgent({
 - **Public share URLs** expose the bridge port until revoked or TTL expires. The bridge token is the auth boundary.
 - **Cross-process resume state** must be persisted by the host application (Redis/DB).
 
-## Image
+## Image (required)
 
-Use `ghcr.io/islo-labs/islo-ai-sdk-runner` for pre-warmed Node, pnpm, harness bootstrap, and headless Codex defaults.
+Sandboxes **must** use `ghcr.io/islo-labs/islo-ai-sdk-runner:latest`. The provider checks for the runner bootstrap marker at create/resume time and rejects other images.
+
+The image ships pre-warmed Node, pnpm, the Codex bridge, and headless feature defaults. Platform auth and provider config live in `~/.codex/config.toml` (managed by Islo, not the image).
