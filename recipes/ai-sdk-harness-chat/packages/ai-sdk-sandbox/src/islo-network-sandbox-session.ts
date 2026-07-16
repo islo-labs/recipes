@@ -10,25 +10,12 @@ import {
 } from "./islo-sandbox-session.js";
 
 const ISLO_PROVIDER_ID = "islo";
-
-const DEFAULT_SHARE_READINESS = {
-  initialDelayMs: 250,
-  maxDelayMs: 2_000,
-  timeoutMs: 60_000,
-  pollIntervalMs: 500,
-} as const;
+const DEFAULT_SHARE_CONNECTION_TIMEOUT_MS = 15_000;
 
 interface ShareCacheEntry {
   shareId: string;
   url: string;
   expiresAt?: string | null;
-}
-
-interface ShareReadinessOptions {
-  initialDelayMs?: number;
-  maxDelayMs?: number;
-  timeoutMs?: number;
-  pollIntervalMs?: number;
 }
 
 /**
@@ -44,7 +31,7 @@ export class IsloNetworkSandboxSession
   private readonly shareCache = new Map<number, ShareCacheEntry>();
   private exposedPorts: number[];
   private readonly shareTtlSeconds: number;
-  private readonly shareReadiness: ShareReadinessOptions;
+  private readonly shareConnectionTimeoutMs: number;
   private readonly ownsLifecycle: boolean;
 
   constructor(input: {
@@ -53,7 +40,7 @@ export class IsloNetworkSandboxSession
     defaultWorkingDirectory: string;
     ports: readonly number[];
     shareTtlSeconds: number;
-    shareReadiness: ShareReadinessOptions;
+    shareConnectionTimeoutMs?: number;
     ownsLifecycle: boolean;
   }) {
     super(input.ctx, input.sandboxName, input.defaultWorkingDirectory);
@@ -61,7 +48,8 @@ export class IsloNetworkSandboxSession
     this.exposedPorts = [...input.ports];
     this.ports = this.exposedPorts;
     this.shareTtlSeconds = input.shareTtlSeconds;
-    this.shareReadiness = input.shareReadiness;
+    this.shareConnectionTimeoutMs =
+      input.shareConnectionTimeoutMs ?? DEFAULT_SHARE_CONNECTION_TIMEOUT_MS;
     this.ownsLifecycle = input.ownsLifecycle;
   }
 
@@ -103,10 +91,10 @@ export class IsloNetworkSandboxSession
     }
     this.shareCache.set(options.port, share);
 
-    await waitForShareReady(
+    await verifyShareReachable(
       share,
       protocol === "ws" ? "ws" : protocol,
-      this.shareReadiness,
+      this.shareConnectionTimeoutMs,
     );
 
     return shareUrlToWebSocketUrl(share.url, protocol === "ws" ? "ws" : protocol);
@@ -249,27 +237,43 @@ async function revokeShare(
   }
 }
 
-async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  signal?.throwIfAborted?.();
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    const onAbort = () => {
-      clearTimeout(timer);
-      reject(new DOMException("Aborted", "AbortError"));
-    };
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-async function probeHttpShare(
-  url: string,
+async function verifyShareReachable(
+  share: ShareCacheEntry,
+  protocol: "http" | "https" | "ws",
+  timeoutMs: number,
   abortSignal?: AbortSignal,
-): Promise<boolean> {
+): Promise<void> {
+  const target = shareUrlToWebSocketUrl(share.url, protocol === "ws" ? "ws" : protocol);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const linked = abortSignal
+    ? AbortSignal.any([abortSignal, controller.signal])
+    : controller.signal;
+
   try {
-    const response = await fetch(url, { method: "GET", signal: abortSignal });
-    return response.status !== 404;
-  } catch {
-    return false;
+    if (protocol === "ws") {
+      const reachable = await probeWebSocketShare(target, linked);
+      if (!reachable) {
+        throw new Error(
+          `Share ${share.shareId} is not reachable over WebSocket within ${timeoutMs}ms`,
+        );
+      }
+      return;
+    }
+
+    const response = await fetch(target, { method: "GET", signal: linked });
+    if (response.status === 404) {
+      throw new Error(`Share ${share.shareId} returned 404`);
+    }
+  } catch (error) {
+    if (linked.aborted) {
+      throw new Error(
+        `Timed out connecting to share ${share.shareId} over ${protocol} within ${timeoutMs}ms`,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -289,61 +293,16 @@ async function probeWebSocketShare(
     }
 
     const ws = new WebSocketCtor(wssUrl);
-    const timer = setTimeout(() => {
+    const onAbort = () => {
       ws.close();
       resolve(false);
-    }, 5_000);
-
-    const cleanup = (result: boolean) => {
-      clearTimeout(timer);
-      resolve(result);
     };
 
     ws.addEventListener("open", () => {
       ws.close();
-      cleanup(true);
+      resolve(true);
     }, { once: true });
-    ws.addEventListener("error", () => cleanup(false), { once: true });
-    abortSignal?.addEventListener(
-      "abort",
-      () => {
-        ws.close();
-        cleanup(false);
-      },
-      { once: true },
-    );
+    ws.addEventListener("error", () => resolve(false), { once: true });
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
   });
-}
-
-async function waitForShareReady(
-  share: ShareCacheEntry,
-  protocol: "http" | "https" | "ws",
-  readiness: ShareReadinessOptions = {},
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  const config = { ...DEFAULT_SHARE_READINESS, ...readiness };
-  const startedAt = Date.now();
-  let delayMs = config.initialDelayMs;
-
-  while (Date.now() - startedAt < config.timeoutMs) {
-    abortSignal?.throwIfAborted?.();
-    if (protocol === "ws") {
-      if (await probeWebSocketShare(shareUrlToWebSocketUrl(share.url, "ws"), abortSignal)) {
-        return;
-      }
-    } else if (
-      await probeHttpShare(
-        shareUrlToWebSocketUrl(share.url, protocol),
-        abortSignal,
-      )
-    ) {
-      return;
-    }
-    await sleep(delayMs, abortSignal);
-    delayMs = Math.min(delayMs * 2, config.maxDelayMs);
-  }
-
-  throw new Error(
-    `Timed out waiting for share ${share.shareId} to become reachable over ${protocol}`,
-  );
 }

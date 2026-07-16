@@ -5,13 +5,11 @@ import {
   type Experimental_SandboxSession,
 } from "@ai-sdk/provider-utils";
 import type { IsloClientContext } from "./islo-sandbox.js";
+import {
+  streamSandboxExec,
+} from "./sdk-sandbox-streams.js";
 
 const ISLO_CODEX_HOME = "/home/islo/.codex";
-
-type ExecStreamEvent =
-  | { type: "stdout"; data: string }
-  | { type: "stderr"; data: string }
-  | { type: "exit"; code: number };
 
 const activeSpawnControllers = new Map<string, Set<AbortController>>();
 
@@ -309,171 +307,6 @@ async function writeSandboxFile(
       body || `Failed to write sandbox file with status ${response.status}`,
     );
   }
-}
-
-function extractExecSseEvent(buffer: string): {
-  buffer: string;
-  event: ExecStreamEvent | null;
-} {
-  const normalized = buffer.replace(/\r\n/g, "\n");
-  const separatorIndex = normalized.indexOf("\n\n");
-  if (separatorIndex === -1) {
-    return { buffer: normalized, event: null };
-  }
-
-  const rawEvent = normalized.slice(0, separatorIndex);
-  const rest = normalized.slice(separatorIndex + 2);
-  if (rawEvent.startsWith(":")) {
-    return { buffer: rest, event: null };
-  }
-
-  let eventType: string | null = null;
-  const dataLines: string[] = [];
-
-  for (const line of rawEvent.split("\n")) {
-    if (line.startsWith("event:")) {
-      eventType = line.slice("event:".length).trim();
-    } else if (line.startsWith("data:")) {
-      dataLines.push(line.slice("data:".length).trimStart());
-    }
-  }
-
-  if (dataLines.length === 0) {
-    return { buffer: rest, event: null };
-  }
-
-  const data = dataLines.join("\n");
-  if (eventType === "stdout") {
-    return { buffer: rest, event: { type: "stdout", data } };
-  }
-  if (eventType === "stderr") {
-    return { buffer: rest, event: { type: "stderr", data } };
-  }
-  if (eventType === "exit") {
-    const code = Number.parseInt(data, 10);
-    return {
-      buffer: rest,
-      event: { type: "exit", code: Number.isNaN(code) ? 1 : code },
-    };
-  }
-
-  return { buffer: rest, event: null };
-}
-
-async function streamSandboxExec(
-  ctx: IsloClientContext,
-  sandboxName: string,
-  options: {
-    args: string[];
-    workdir?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-    onEvent?: (event: ExecStreamEvent) => void;
-  },
-): Promise<number> {
-  const url = new URL(
-    `/sandboxes/${encodeURIComponent(sandboxName)}/exec/stream`,
-    ctx.computeUrl,
-  ).toString();
-
-  const response = await ctx.client.fetch(
-    url,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
-      body: JSON.stringify({
-        args: options.args,
-        workdir: options.workdir,
-        env_vars: options.env ?? {},
-      }),
-      signal: options.abortSignal,
-    },
-    { abortSignal: options.abortSignal },
-  );
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      body || `Exec stream failed with status ${response.status}`,
-    );
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("Exec stream response has no body");
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let exitCode: number | null = null;
-  let sawOutput = false;
-
-  const handleChunk = (chunk: string) => {
-    buffer += chunk;
-    while (true) {
-      const parsed = extractExecSseEvent(buffer);
-      buffer = parsed.buffer;
-      if (!parsed.event) {
-        break;
-      }
-      options.onEvent?.(parsed.event);
-      if (parsed.event.type === "stdout" || parsed.event.type === "stderr") {
-        sawOutput = true;
-      }
-      if (parsed.event.type === "exit") {
-        exitCode = parsed.event.code;
-        return true;
-      }
-    }
-    return false;
-  };
-
-  try {
-    while (true) {
-      if (options.abortSignal?.aborted) {
-        await reader.cancel().catch(() => undefined);
-        throw new DOMException("Aborted", "AbortError");
-      }
-
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      if (handleChunk(decoder.decode(value, { stream: true }))) {
-        await reader.cancel().catch(() => undefined);
-        return exitCode ?? 0;
-      }
-    }
-
-    handleChunk(decoder.decode());
-  } catch (error) {
-    if (options.abortSignal?.aborted) {
-      throw new DOMException("Aborted", "AbortError");
-    }
-    handleChunk(decoder.decode());
-    if (exitCode !== null) {
-      return exitCode;
-    }
-    if (sawOutput) {
-      return 0;
-    }
-    throw error;
-  }
-
-  if (exitCode !== null) {
-    return exitCode;
-  }
-  if (sawOutput) {
-    return 0;
-  }
-
-  throw new Error(
-    "Exec stream ended before an exit event was received. The command may still be running in the sandbox.",
-  );
 }
 
 function createSandboxProcessFromStream(options: {
