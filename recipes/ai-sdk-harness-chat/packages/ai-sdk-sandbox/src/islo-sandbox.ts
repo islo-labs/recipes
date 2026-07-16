@@ -6,10 +6,6 @@ import type {
 import type { Experimental_SandboxSession } from "@ai-sdk/provider-utils";
 import { Islo, type IsloApi } from "@islo-labs/sdk";
 import { IsloNetworkSandboxSession } from "./islo-network-sandbox-session.js";
-import {
-  createSandboxWithStream,
-  waitForSandboxCreation,
-} from "./sdk-sandbox-streams.js";
 
 /** Codex harness bridge port exposed via Islo shares. */
 export const ISLO_AI_SDK_BRIDGE_PORT = 4000;
@@ -336,6 +332,22 @@ function isSandboxTerminalFailure(status: string): boolean {
   return status === "failed" || status === "deleted";
 }
 
+async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted?.();
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 /** Wait only when the sandbox is not already running (create/resume block until ready). */
 async function ensureSandboxReady(
   ctx: IsloClientContext,
@@ -343,44 +355,34 @@ async function ensureSandboxReady(
   abortSignal?: AbortSignal,
   timeoutMs = 120_000,
 ): Promise<SandboxSnapshot> {
-  if (isSandboxRunning(sandbox.status)) {
-    return sandbox;
-  }
-  if (isSandboxTerminalFailure(sandbox.status)) {
-    throw new Error(`Sandbox '${sandbox.name}' is ${sandbox.status}`);
-  }
-
+  const startedAt = Date.now();
   let current = sandbox;
 
-  if (current.status === "paused") {
-    const resumed = await ctx.client.sandboxes.resumeSandbox(
-      { sandbox_name: current.name },
-      { abortSignal },
-    );
-    current = {
-      name: resumed.name,
-      status: resumed.status,
-      workdir: resumed.workdir,
-    };
+  while (Date.now() - startedAt < timeoutMs) {
+    abortSignal?.throwIfAborted?.();
+
     if (isSandboxRunning(current.status)) {
       return current;
     }
     if (isSandboxTerminalFailure(current.status)) {
       throw new Error(`Sandbox '${current.name}' is ${current.status}`);
     }
+    if (current.status === "paused") {
+      current = await ctx.client.sandboxes.resumeSandbox(
+        { sandbox_name: current.name },
+        { abortSignal },
+      );
+      continue;
+    }
+
+    await sleep(2_000, abortSignal);
+    current = await ctx.client.sandboxes.getSandbox(
+      { sandbox_name: current.name },
+      { abortSignal },
+    );
   }
 
-  const ready = await waitForSandboxCreation(
-    ctx,
-    current.name,
-    abortSignal,
-    timeoutMs,
-  );
-  return {
-    name: ready.name,
-    status: ready.status,
-    workdir: ready.workdir,
-  };
+  throw new Error(`Timed out waiting for sandbox '${sandbox.name}' to be ready`);
 }
 
 async function createOrReuseSandbox(options: {
@@ -401,8 +403,7 @@ async function createOrReuseSandbox(options: {
     }
   }
 
-  const created = await createSandboxWithStream(
-    options.ctx,
+  const created = await options.ctx.client.sandboxes.createSandbox(
     {
       name: options.sandboxName,
       image: options.settings.image ?? ISLO_AI_SDK_RUNNER_IMAGE,
@@ -413,7 +414,7 @@ async function createOrReuseSandbox(options: {
       init: options.settings.init ?? DEFAULT_SANDBOX_INIT,
       setup_scripts: null,
     },
-    options.abortSignal,
+    { abortSignal: options.abortSignal },
   );
 
   return { sandbox: created, isFreshCreate: true };

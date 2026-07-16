@@ -11,6 +11,8 @@ import {
 
 const ISLO_PROVIDER_ID = "islo";
 const DEFAULT_SHARE_CONNECTION_TIMEOUT_MS = 15_000;
+const SHARE_CONNECTION_INITIAL_DELAY_MS = 250;
+const SHARE_CONNECTION_MAX_DELAY_MS = 2_000;
 
 interface ShareCacheEntry {
   shareId: string;
@@ -245,35 +247,70 @@ async function verifyShareReachable(
 ): Promise<void> {
   const target = shareUrlToWebSocketUrl(share.url, protocol === "ws" ? "ws" : protocol);
   const controller = new AbortController();
+  const onAbort = () => controller.abort(abortSignal?.reason);
+  abortSignal?.throwIfAborted?.();
+  abortSignal?.addEventListener("abort", onAbort, { once: true });
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  const linked = abortSignal
-    ? AbortSignal.any([abortSignal, controller.signal])
-    : controller.signal;
+  const deadline = Date.now() + timeoutMs;
+  let delayMs = SHARE_CONNECTION_INITIAL_DELAY_MS;
 
   try {
-    if (protocol === "ws") {
-      const reachable = await probeWebSocketShare(target, linked);
-      if (!reachable) {
-        throw new Error(
-          `Share ${share.shareId} is not reachable over WebSocket within ${timeoutMs}ms`,
-        );
+    while (!controller.signal.aborted) {
+      const reachable =
+        protocol === "ws"
+          ? await probeWebSocketShare(target, controller.signal)
+          : await probeHttpShare(target, controller.signal);
+      if (reachable) {
+        return;
       }
-      return;
-    }
 
-    const response = await fetch(target, { method: "GET", signal: linked });
-    if (response.status === 404) {
-      throw new Error(`Share ${share.shareId} returned 404`);
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        break;
+      }
+      await sleep(Math.min(delayMs, remainingMs), controller.signal);
+      delayMs = Math.min(delayMs * 2, SHARE_CONNECTION_MAX_DELAY_MS);
     }
   } catch (error) {
-    if (linked.aborted) {
-      throw new Error(
-        `Timed out connecting to share ${share.shareId} over ${protocol} within ${timeoutMs}ms`,
-      );
+    if (!controller.signal.aborted) {
+      throw error;
     }
-    throw error;
   } finally {
     clearTimeout(timer);
+    abortSignal?.removeEventListener("abort", onAbort);
+  }
+
+  abortSignal?.throwIfAborted?.();
+  throw new Error(
+    `Timed out connecting to share ${share.shareId} over ${protocol} within ${timeoutMs}ms`,
+  );
+}
+
+async function sleep(ms: number, abortSignal: AbortSignal): Promise<void> {
+  abortSignal.throwIfAborted();
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      abortSignal.removeEventListener("abort", onAbort);
+      reject(abortSignal.reason);
+    };
+    const timer = setTimeout(() => {
+      abortSignal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    abortSignal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function probeHttpShare(
+  url: string,
+  abortSignal: AbortSignal,
+): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: "GET", signal: abortSignal });
+    return response.status !== 404;
+  } catch {
+    return false;
   }
 }
 
@@ -292,17 +329,36 @@ async function probeWebSocketShare(
       return;
     }
 
-    const ws = new WebSocketCtor(wssUrl);
-    const onAbort = () => {
-      ws.close();
+    let ws: WebSocket;
+    try {
+      ws = new WebSocketCtor(wssUrl);
+    } catch {
       resolve(false);
-    };
+      return;
+    }
 
-    ws.addEventListener("open", () => {
-      ws.close();
-      resolve(true);
-    }, { once: true });
-    ws.addEventListener("error", () => resolve(false), { once: true });
+    let settled = false;
+    const finish = (reachable: boolean) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      ws.removeEventListener("open", onOpen);
+      ws.removeEventListener("error", onError);
+      abortSignal?.removeEventListener("abort", onAbort);
+      try {
+        ws.close();
+      } catch {
+        // The probe is already settled.
+      }
+      resolve(reachable);
+    };
+    const onOpen = () => finish(true);
+    const onError = () => finish(false);
+    const onAbort = () => finish(false);
+
+    ws.addEventListener("open", onOpen, { once: true });
+    ws.addEventListener("error", onError, { once: true });
     abortSignal?.addEventListener("abort", onAbort, { once: true });
   });
 }

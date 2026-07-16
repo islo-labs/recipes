@@ -90,7 +90,7 @@ Pin production workloads to immutable `sha-*` tags or digests. Override with `IS
 
 Codex's harness bridge expects the **host** (this Next.js server) to dial `wss://` into the sandbox via an Islo **share** in `getPortUrl()`.
 
-The provider retries share propagation with exponential backoff instead of a fixed sleep.
+The provider performs one share lookup or create request, then retries the bridge connection with exponential backoff until the bounded connection timeout. It does not poll for share propagation.
 
 ## Experimental caveat
 
