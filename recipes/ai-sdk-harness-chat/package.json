@@ -2,12 +2,9 @@
   "name": "ai-sdk-harness-chat",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build -w @islo-labs/ai-sdk-sandbox && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test lib/**/*.test.ts"
@@ -17,7 +14,7 @@
     "@ai-sdk/harness-codex": "^1.0.35",
     "@ai-sdk/provider-utils": "^5.0.10",
     "@ai-sdk/react": "^4.0.23",
-    "@islo-labs/ai-sdk-sandbox": "*",
+    "@islo-labs/ai-sdk-sandbox": "github:islo-labs/ai-sdk-sandbox#main",
     "@islo-labs/sdk": "^0.0.30",
     "ai": "^7.0.22",
     "next": "16.2.10",
