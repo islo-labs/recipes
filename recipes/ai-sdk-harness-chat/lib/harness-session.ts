@@ -1,6 +1,27 @@
-import type { HarnessAgentResumeSessionState } from "@ai-sdk/harness/agent";
+import type {
+  HarnessAgentResumeSessionState,
+  HarnessAgentSession,
+} from "@ai-sdk/harness/agent";
 
 const resumeStateByChatId = new Map<string, HarnessAgentResumeSessionState>();
+const liveSessionByChatId = new Map<string, HarnessAgentSession>();
+
+export function getLiveHarnessSession(
+  chatId: string,
+): HarnessAgentSession | undefined {
+  return liveSessionByChatId.get(chatId);
+}
+
+export function setLiveHarnessSession(
+  chatId: string,
+  session: HarnessAgentSession,
+): void {
+  liveSessionByChatId.set(chatId, session);
+}
+
+export function clearLiveHarnessSession(chatId: string): void {
+  liveSessionByChatId.delete(chatId);
+}
 
 export function getHarnessResumeState(
   chatId: string,
@@ -17,6 +38,7 @@ export function setHarnessResumeState(
 
 export function clearHarnessResumeState(chatId: string): void {
   resumeStateByChatId.delete(chatId);
+  liveSessionByChatId.delete(chatId);
 }
 
 export function listHarnessChatIds(): string[] {

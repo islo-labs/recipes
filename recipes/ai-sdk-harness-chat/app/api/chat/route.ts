@@ -8,8 +8,10 @@ import {
 import { getAgent } from "@/lib/agent";
 import {
   clearHarnessResumeState,
+  clearLiveHarnessSession,
   getHarnessResumeState,
-  setHarnessResumeState,
+  getLiveHarnessSession,
+  setLiveHarnessSession,
 } from "@/lib/harness-session";
 import { createChatLogger, createRequestId } from "@/lib/chat-log";
 import {
@@ -46,13 +48,18 @@ export async function POST(req: Request) {
   const resumeFrom = getHarnessResumeState(chatId);
   const sandboxName = sandboxNameForSession(chatId);
 
-  let session;
+  let session = getLiveHarnessSession(chatId);
+  let createdSession = false;
   try {
-    session = await agent.createSession(
-      resumeFrom
-        ? { sessionId: chatId, resumeFrom, abortSignal: req.signal }
-        : { sessionId: chatId, abortSignal: req.signal },
-    );
+    if (!session) {
+      session = await agent.createSession(
+        resumeFrom
+          ? { sessionId: chatId, resumeFrom, abortSignal: req.signal }
+          : { sessionId: chatId, abortSignal: req.signal },
+      );
+      createdSession = true;
+      setLiveHarnessSession(chatId, session);
+    }
   } catch (error) {
     log.error("harness createSession failed", {
       chatId,
@@ -66,6 +73,9 @@ export async function POST(req: Request) {
       } catch {
         // Best-effort cleanup.
       }
+    }
+    if (createdSession) {
+      clearLiveHarnessSession(chatId);
     }
     clearHarnessResumeState(chatId);
     return new Response(formatIsloError(error), {
@@ -109,20 +119,12 @@ export async function POST(req: Request) {
           // Ignore cleanup errors after a failed turn.
         }
         clearHarnessResumeState(chatId);
+        clearLiveHarnessSession(chatId);
         throw error;
       }
     },
     onFinish: async () => {
-      try {
-        const resumeState = await session.detach();
-        setHarnessResumeState(chatId, resumeState);
-        log.info("harness session detached", { chatId });
-      } catch (error) {
-        log.error("failed to detach harness session", {
-          chatId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      log.info("harness turn complete", { chatId });
     },
     onError: (error) =>
       error instanceof Error ? error.message : "Harness request failed",
@@ -143,6 +145,33 @@ export async function DELETE(req: Request) {
 
   const resumeFrom = getHarnessResumeState(chatId);
   const sandboxName = sandboxNameForSession(chatId);
+  const liveSession = getLiveHarnessSession(chatId);
+
+  if (liveSession) {
+    try {
+      await liveSession.destroy();
+      log.info("destroyed live harness session", { chatId, sandboxName });
+    } catch (error) {
+      log.warn("live harness destroy failed; deleting sandbox directly", {
+        chatId,
+        sandboxName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      try {
+        await deleteSandboxByName(sandboxName, {}, req.signal);
+      } catch (deleteError) {
+        log.warn("sandbox delete failed", {
+          sandboxName,
+          error:
+            deleteError instanceof Error
+              ? deleteError.message
+              : String(deleteError),
+        });
+      }
+    }
+    clearHarnessResumeState(chatId);
+    return new Response(null, { status: 204 });
+  }
 
   if (resumeFrom) {
     try {

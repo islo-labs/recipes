@@ -78,10 +78,17 @@ export class IsloNetworkSandboxSession
 
     const protocol = options.protocol ?? "https";
     let share = this.shareCache.get(options.port);
+    let reusedExistingShare = false;
     if (!share) {
-      share =
-        (await listReusableShare(this.ctx, this.sandboxName, options.port)) ??
-        undefined;
+      const existing = await listReusableShare(
+        this.ctx,
+        this.sandboxName,
+        options.port,
+      );
+      if (existing) {
+        share = existing;
+        reusedExistingShare = true;
+      }
     }
     if (!share) {
       share = await createShareForPort(
@@ -93,11 +100,15 @@ export class IsloNetworkSandboxSession
     }
     this.shareCache.set(options.port, share);
 
-    await verifyShareReachable(
-      share,
-      protocol === "ws" ? "ws" : protocol,
-      this.shareConnectionTimeoutMs,
-    );
+    // Reused shares were already validated when first created. Fresh shares
+    // still need a reachability check before handing the URL to the harness.
+    if (!reusedExistingShare) {
+      await verifyShareReachable(
+        share,
+        protocol === "ws" ? "ws" : protocol,
+        this.shareConnectionTimeoutMs,
+      );
+    }
 
     return shareUrlToWebSocketUrl(share.url, protocol === "ws" ? "ws" : protocol);
   };
@@ -345,6 +356,7 @@ async function probeWebSocketShare(
       settled = true;
       ws.removeEventListener("open", onOpen);
       ws.removeEventListener("error", onError);
+      ws.removeEventListener("close", onClose);
       abortSignal?.removeEventListener("abort", onAbort);
       try {
         ws.close();
@@ -355,10 +367,18 @@ async function probeWebSocketShare(
     };
     const onOpen = () => finish(true);
     const onError = () => finish(false);
+    const onClose = (event: CloseEvent) => {
+      // Harness bridges reject unauthenticated probes with 1008. That still
+      // proves the share routes to a live bridge listener.
+      if (event.code === 1008) {
+        finish(true);
+      }
+    };
     const onAbort = () => finish(false);
 
     ws.addEventListener("open", onOpen, { once: true });
     ws.addEventListener("error", onError, { once: true });
+    ws.addEventListener("close", onClose, { once: true });
     abortSignal?.addEventListener("abort", onAbort, { once: true });
   });
 }
