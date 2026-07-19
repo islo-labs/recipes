@@ -43,13 +43,27 @@ Open [http://localhost:3000](http://localhost:3000).
 |------|------|
 | `packages/islo-ai-sdk-sandbox/src/` | Bundled Islo sandbox provider (sync `createSandbox`, exec SSE) |
 | `lib/agent.ts` | `HarnessAgent` wired to `createIsloSandbox()` |
-| `lib/harness-session.ts` | In-memory `resumeFrom` store between HTTP requests |
-| `app/api/chat/route.ts` | Chat stream, detach/resume, sandbox cleanup |
+| `lib/harness-session.ts` | In-memory live sessions + `resumeFrom` store between HTTP requests |
+| `lib/harness-status.ts` | Transient setup status events streamed to the browser |
+| `lib/chat-messages.ts` | Sends only the latest user turn to the harness |
+| `app/api/chat/route.ts` | Chat stream, live session reuse, sandbox cleanup |
 | `app/page.tsx` | `useChat` UI |
 
 ## Verify success
 
-Send a message in the browser. A successful request streams a Codex response, and a second message resumes the same harness session.
+Send a message in the browser. The UI should show setup status ("Provisioning Islo sandbox…", "Starting Codex bridge…") while the stream is open, then Codex tokens. A second message in the same tab reuses the live harness session.
+
+Cold starts use the pre-baked `ghcr.io/islo-labs/islo-ai-sdk-runner:latest` image so the Codex bridge dependencies are already installed in `/tmp/harness/codex`.
+
+## Latency
+
+| Phase | Typical time |
+| --- | --- |
+| First byte (status UI) | Immediate — setup runs inside the open SSE stream |
+| First Codex token (cold chat) | ~15–30s (sandbox boot + bridge) |
+| Follow-up message (same process) | ~1–5s to first token |
+
+Improvements baked into this recipe: early streaming status, live in-process session reuse, latest-user-message-only turns, and the `islo-ai-sdk-runner` image with preinstalled bridge deps.
 
 ## Troubleshooting
 

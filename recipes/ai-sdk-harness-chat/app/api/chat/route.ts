@@ -4,8 +4,10 @@ import {
   createUIMessageStreamResponse,
   toUIMessageStream,
   type UIMessage,
+  type UIMessageStreamWriter,
 } from "ai";
 import { getAgent } from "@/lib/agent";
+import { latestUserMessage } from "@/lib/chat-messages";
 import {
   clearHarnessResumeState,
   clearLiveHarnessSession,
@@ -13,6 +15,10 @@ import {
   getLiveHarnessSession,
   setLiveHarnessSession,
 } from "@/lib/harness-session";
+import {
+  HARNESS_STATUS_DATA_TYPE,
+  harnessStatus,
+} from "@/lib/harness-status";
 import { createChatLogger, createRequestId } from "@/lib/chat-log";
 import {
   deleteSandboxByName,
@@ -21,6 +27,19 @@ import {
 } from "@islo-labs/islo-ai-sdk-sandbox";
 
 export const maxDuration = 300;
+
+function writeHarnessStatus(
+  writer: UIMessageStreamWriter<UIMessage>,
+  stage: Parameters<typeof harnessStatus>[0],
+  message?: string,
+): void {
+  writer.write({
+    type: HARNESS_STATUS_DATA_TYPE,
+    id: "harness-status",
+    data: harnessStatus(stage, message),
+    transient: true,
+  });
+}
 
 export async function POST(req: Request) {
   const requestId = createRequestId();
@@ -39,61 +58,57 @@ export async function POST(req: Request) {
     return new Response("Missing messages", { status: 400 });
   }
 
+  const lastUser = latestUserMessage(messages);
+  if (!lastUser) {
+    return new Response("Missing user message", { status: 400 });
+  }
+
   log.info("harness chat request", {
     chatId,
     messageCount: messages.length,
+    turnMessageCount: 1,
   });
 
   const agent = getAgent();
   const resumeFrom = getHarnessResumeState(chatId);
   const sandboxName = sandboxNameForSession(chatId);
 
-  let session = getLiveHarnessSession(chatId);
-  let createdSession = false;
-  try {
-    if (!session) {
-      session = await agent.createSession(
-        resumeFrom
-          ? { sessionId: chatId, resumeFrom, abortSignal: req.signal }
-          : { sessionId: chatId, abortSignal: req.signal },
-      );
-      createdSession = true;
-      setLiveHarnessSession(chatId, session);
-    }
-  } catch (error) {
-    log.error("harness createSession failed", {
-      chatId,
-      sandboxName,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    if (!resumeFrom) {
-      try {
-        await deleteSandboxByName(sandboxName, {}, req.signal);
-        log.info("deleted sandbox after failed createSession", { sandboxName });
-      } catch {
-        // Best-effort cleanup.
-      }
-    }
-    if (createdSession) {
-      clearLiveHarnessSession(chatId);
-    }
-    clearHarnessResumeState(chatId);
-    return new Response(formatIsloError(error), {
-      status:
-        error != null &&
-        typeof error === "object" &&
-        "statusCode" in error &&
-        error.statusCode === 429
-          ? 429
-          : 500,
-    });
-  }
-
   const stream = createUIMessageStream({
     originalMessages: messages,
     execute: async ({ writer }) => {
+      let session = getLiveHarnessSession(chatId);
+      let createdSession = false;
+
       try {
-        const modelMessages = await convertToModelMessages(messages);
+        if (session) {
+          writeHarnessStatus(writer, "ready", "Reusing live harness session");
+        } else {
+          writeHarnessStatus(writer, "starting");
+          writeHarnessStatus(
+            writer,
+            resumeFrom ? "bridge" : "sandbox",
+            resumeFrom
+              ? "Reconnecting to Codex bridge…"
+              : "Creating Islo sandbox…",
+          );
+
+          if (!resumeFrom) {
+            writeHarnessStatus(writer, "bootstrap");
+          }
+
+          session = await agent.createSession(
+            resumeFrom
+              ? { sessionId: chatId, resumeFrom, abortSignal: req.signal }
+              : { sessionId: chatId, abortSignal: req.signal },
+          );
+          createdSession = true;
+          setLiveHarnessSession(chatId, session);
+          writeHarnessStatus(writer, "ready");
+        }
+
+        writeHarnessStatus(writer, "streaming");
+
+        const modelMessages = await convertToModelMessages([lastUser]);
         const result = await agent.stream({
           session,
           messages: modelMessages,
@@ -113,13 +128,28 @@ export async function POST(req: Request) {
           chatId,
           error: error instanceof Error ? error.message : String(error),
         });
-        try {
-          await session.destroy();
-        } catch {
-          // Ignore cleanup errors after a failed turn.
+
+        if (createdSession || session) {
+          try {
+            await session?.destroy();
+          } catch {
+            // Ignore cleanup errors after a failed turn.
+          }
+        }
+
+        if (!resumeFrom && createdSession) {
+          try {
+            await deleteSandboxByName(sandboxName, {}, req.signal);
+            log.info("deleted sandbox after failed turn", { sandboxName });
+          } catch {
+            // Best-effort cleanup.
+          }
+        }
+
+        if (createdSession) {
+          clearLiveHarnessSession(chatId);
         }
         clearHarnessResumeState(chatId);
-        clearLiveHarnessSession(chatId);
         throw error;
       }
     },
