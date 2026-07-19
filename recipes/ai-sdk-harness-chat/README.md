@@ -4,16 +4,16 @@ Next.js chat app that runs **Codex** through the experimental AI SDK [`HarnessAg
 
 ```
 useChat → /api/chat → HarnessAgent({ harness: codex, sandbox: createIsloSandbox() })
-  → @islo-labs/ai-sdk-sandbox → wss:// share bridge → browser
+  → packages/ai-sdk-sandbox (bundled source, not published to npm)
+  → wss:// share bridge → browser
 ```
 
 Resume state is stored in memory keyed by the `useChat` id. Persist `HarnessAgentResumeSessionState` in Redis or a database before running multiple app instances.
 
-## Prerequisites
+## Requirements
 
 - Node.js 22+
 - Islo API key with sandbox access
-- [`@islo-labs/ai-sdk-sandbox`](https://github.com/islo-labs/ai-sdk-sandbox) — install from the package repo (not vendored in this recipe)
 
 ## Setup
 
@@ -41,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Path | Role |
 |------|------|
+| `packages/ai-sdk-sandbox/src/` | Bundled Islo sandbox provider (sync `createSandbox`, exec SSE) |
 | `lib/agent.ts` | `HarnessAgent` wired to `createIsloSandbox()` |
 | `lib/harness-session.ts` | In-memory `resumeFrom` store between HTTP requests |
 | `app/api/chat/route.ts` | Chat stream, detach/resume, sandbox cleanup |
@@ -55,7 +56,6 @@ Send a message in the browser. A successful request streams a Codex response, an
 | Symptom | Fix |
 | --- | --- |
 | Missing Islo credentials | Set `ISLO_API_KEY` in `.env.local` and restart Next.js |
-| `@islo-labs/ai-sdk-sandbox` not found | Install from `github:islo-labs/ai-sdk-sandbox#main` |
 | Share readiness timeout | Verify compute-plane share access and runner image bootstrap |
 | Stale test sandboxes | Delete orphaned `harness-chat-*` sandboxes from the Islo dashboard |
 
