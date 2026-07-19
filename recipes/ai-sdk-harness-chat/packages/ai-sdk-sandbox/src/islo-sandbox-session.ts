@@ -4,6 +4,7 @@ import {
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession,
 } from "@ai-sdk/provider-utils";
+import { IsloApi } from "@islo-labs/sdk";
 import type { IsloClientContext } from "./islo-sandbox.js";
 
 const ISLO_CODEX_HOME = "/home/islo/.codex";
@@ -251,11 +252,6 @@ function resolveSandboxPath(path: string, defaultWorkingDirectory: string): stri
   return `${defaultWorkingDirectory.replace(/\/$/, "")}/${path}`;
 }
 
-function filesUrl(sandboxName: string, path: string): string {
-  const params = new URLSearchParams({ path });
-  return `/sandboxes/${encodeURIComponent(sandboxName)}/files?${params}`;
-}
-
 async function readSandboxFile(
   ctx: IsloClientContext,
   sandboxName: string,
@@ -264,24 +260,18 @@ async function readSandboxFile(
   abortSignal?: AbortSignal,
 ): Promise<Uint8Array | null> {
   const resolved = resolveSandboxPath(path, defaultWorkingDirectory);
-  const url = new URL(filesUrl(sandboxName, resolved), ctx.computeUrl);
-  const response = await ctx.client.fetch(
-    url.toString(),
-    { method: "GET", signal: abortSignal },
-    { abortSignal },
-  );
-
-  if (response.status === 404) {
-    return null;
-  }
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      body || `Failed to read sandbox file with status ${response.status}`,
+  try {
+    const response = await ctx.client.sandboxes.downloadFile(
+      { sandbox_name: sandboxName, path: resolved },
+      { abortSignal },
     );
+    return new Uint8Array(await response.arrayBuffer());
+  } catch (error) {
+    if (error instanceof IsloApi.NotFoundError) {
+      return null;
+    }
+    throw error;
   }
-
-  return new Uint8Array(await response.arrayBuffer());
 }
 
 async function writeSandboxFile(
@@ -291,27 +281,14 @@ async function writeSandboxFile(
   content: Uint8Array,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const blobContent = new Uint8Array(content.byteLength);
-  blobContent.set(content);
-  const form = new FormData();
-  form.append(
-    "file",
-    new Blob([blobContent], { type: "application/octet-stream" }),
-    "file",
-  );
-
-  const url = new URL(filesUrl(sandboxName, path), ctx.computeUrl).toString();
-  const response = await ctx.client.fetch(
-    url,
-    { method: "POST", body: form, signal: abortSignal },
+  await ctx.client.sandboxes.uploadFile(
+    {
+      sandbox_name: sandboxName,
+      path,
+      file: content,
+    },
     { abortSignal },
   );
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      body || `Failed to write sandbox file with status ${response.status}`,
-    );
-  }
 }
 
 type ExecSseParseResult =
@@ -401,9 +378,9 @@ async function streamSandboxExec(
         Accept: "text/event-stream",
       },
       body: JSON.stringify({
-        args: options.args,
+        command: options.args,
         workdir: options.workdir,
-        env_vars: options.env ?? {},
+        env: options.env,
       }),
       signal: options.abortSignal,
     },
