@@ -1,7 +1,11 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  type HarnessStatusData,
+  HARNESS_STATUS_DATA_TYPE,
+} from "@/lib/harness-status";
 
 const CHAT_ID_STORAGE_KEY = "harness-chat-id";
 
@@ -22,9 +26,24 @@ export default function ChatPage() {
   const [chatId, setChatId] = useState(loadChatId);
   const [input, setInput] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [harnessStatusMessage, setHarnessStatusMessage] = useState<
+    string | null
+  >(null);
   const { messages, sendMessage, setMessages, status, error } = useChat({
     id: chatId,
+    onData: (part) => {
+      if (part.type === HARNESS_STATUS_DATA_TYPE) {
+        const data = part.data as HarnessStatusData;
+        setHarnessStatusMessage(data.message);
+      }
+    },
   });
+
+  useEffect(() => {
+    if (status === "ready" || status === "error") {
+      setHarnessStatusMessage(null);
+    }
+  }, [status]);
 
   async function startNewChat() {
     setIsResetting(true);
@@ -39,10 +58,13 @@ export default function ChatPage() {
       setChatId(nextChatId);
       setMessages([]);
       setInput("");
+      setHarnessStatusMessage(null);
     } finally {
       setIsResetting(false);
     }
   }
+
+  const isBusy = status === "submitted" || status === "streaming";
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-4 py-8">
@@ -52,15 +74,14 @@ export default function ChatPage() {
             Islo Harness Chat
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Codex via AI SDK HarnessAgent — one sandbox per chat, resumed across turns
+            Codex via AI SDK HarnessAgent — one sandbox per chat, resumed across
+            turns
           </p>
         </div>
         <button
           type="button"
           onClick={startNewChat}
-          disabled={
-            isResetting || status === "submitted" || status === "streaming"
-          }
+          disabled={isResetting || isBusy}
           className="rounded-full border border-zinc-300 px-4 py-2 text-sm text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
           {isResetting ? "Resetting..." : "New chat"}
@@ -105,8 +126,16 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {status === "submitted" || status === "streaming" ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Thinking...</p>
+        {isBusy && harnessStatusMessage ? (
+          <div className="mr-12 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            <p className="font-medium">{harnessStatusMessage}</p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Setup runs while the stream is open — you should see Codex output
+              as soon as the bridge is ready.
+            </p>
+          </div>
+        ) : isBusy ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Thinking…</p>
         ) : null}
 
         {error ? (
@@ -121,7 +150,7 @@ export default function ChatPage() {
         onSubmit={(event) => {
           event.preventDefault();
           const text = input.trim();
-          if (!text || status === "submitted" || status === "streaming") {
+          if (!text || isBusy) {
             return;
           }
           sendMessage({ text });
@@ -137,9 +166,7 @@ export default function ChatPage() {
           />
           <button
             type="submit"
-            disabled={
-              !input.trim() || status === "submitted" || status === "streaming"
-            }
+            disabled={!input.trim() || isBusy}
             className="rounded-full bg-zinc-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
             Send
