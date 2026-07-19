@@ -14,12 +14,14 @@ TYPE_FILES: dict[str, tuple[str, ...]] = {
     "sdk": ("README.md", ".env.example", "pyproject.toml", "uv.lock"),
     "agent": ("README.md", ".env.example", "pyproject.toml", "uv.lock"),
     "automation": ("README.md", ".env.example"),
+    "app": ("README.md", ".env.example", "package.json", "package-lock.json"),
 }
 
 TYPE_README: dict[str, tuple[str, ...]] = {
     "sdk": ("## Goal", "## Quick start", "## Verify success"),
     "agent": ("## How to create", "## How to run example"),
     "automation": ("## Quick start",),
+    "app": ("## Setup", "## Verify success", "## Troubleshooting"),
 }
 
 SKIP_ENV = frozenset({"ISLO_API_KEY", "ISLO_BASE_URL", "ISLO_RECIPES_REPO_URL", "ISLO_RECIPES_REF"})
@@ -72,11 +74,14 @@ def _detect_type(directory: Path) -> tuple[str, str, str] | None:
         lang = _detect_lang(directory) or "python"
         return "agent", lang, entrypoint
 
+    if (directory / "package.json").is_file() and (directory / "app").is_dir():
+        return "app", "typescript", "app"
+
     return None
 
 
 def _live_tier(recipe_type: str, recipe_id: str) -> str:
-    if recipe_type == "automation":
+    if recipe_type in ("automation", "app"):
         return ""
     if recipe_type == "agent":
         return "agent"

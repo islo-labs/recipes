@@ -1,0 +1,37 @@
+{
+  "name": "ai-sdk-harness-chat",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run build -w @islo-labs/islo-ai-sdk-sandbox && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test lib/**/*.test.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/harness": "^1.0.33",
+    "@ai-sdk/harness-codex": "^1.0.35",
+    "@ai-sdk/provider-utils": "^5.0.10",
+    "@ai-sdk/react": "^4.0.23",
+    "@islo-labs/islo-ai-sdk-sandbox": "*",
+    "@islo-labs/sdk": "^0.0.31",
+    "ai": "^7.0.22",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

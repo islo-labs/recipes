@@ -55,6 +55,10 @@ def validate_recipe(recipe) -> list[str]:
         for wf in workflows:
             yaml.safe_load(wf.read_text())
 
+    elif recipe.type == "app":
+        if not (directory / "app" / "page.tsx").is_file():
+            errors.append(f"recipes/{recipe.id}/ missing app/page.tsx")
+
     if recipe.lang == "python" and recipe.type in ("sdk", "agent"):
         py_files: list[Path] = []
         if recipe.type == "sdk":

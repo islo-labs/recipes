@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository.
 
 ## What this repo is
 
-A public cookbook of **Islo examples** under `recipes/<id>/`. Multi-language (`python` today; `go` and `typescript` planned). This is **not** the Islo SDK source.
+A public cookbook of **Islo examples** under `recipes/<id>/`. Recipes currently use Python and TypeScript, with Go support planned. This is **not** the Islo SDK source.
 
 Recipe registry: discovered from `recipes/<id>/` folder conventions (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
@@ -12,6 +12,7 @@ Recipe registry: discovered from `recipes/<id>/` folder conventions (see [`CONTR
 |-------|------------|----------------|
 | **SDK** | `run.py` (Python) | `PASS: <recipe-id>` |
 | **Agent** | `*/main.py` | `Done.` in stdout |
+| **App** | `app/page.tsx` + `package.json` | Framework-specific build |
 
 ## How to run a Python SDK recipe
 
@@ -27,6 +28,14 @@ uv run python run.py
 cd recipes/<recipe-id>
 uv sync
 uv run python <package>/main.py
+```
+
+## How to run a TypeScript app recipe
+
+```bash
+cd recipes/<recipe-id>
+npm install
+npm run dev
 ```
 
 ## Validation (no API keys)
