@@ -332,57 +332,39 @@ function isSandboxTerminalFailure(status: string): boolean {
   return status === "failed" || status === "deleted";
 }
 
-async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  signal?.throwIfAborted?.();
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = () => {
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-      reject(new DOMException("Aborted", "AbortError"));
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-/** Wait only when the sandbox is not already running (create/resume block until ready). */
+/** Create/resume APIs block until the sandbox is running. */
 async function ensureSandboxReady(
   ctx: IsloClientContext,
   sandbox: SandboxSnapshot,
   abortSignal?: AbortSignal,
-  timeoutMs = 120_000,
 ): Promise<SandboxSnapshot> {
-  const startedAt = Date.now();
-  let current = sandbox;
+  abortSignal?.throwIfAborted?.();
 
-  while (Date.now() - startedAt < timeoutMs) {
-    abortSignal?.throwIfAborted?.();
-
-    if (isSandboxRunning(current.status)) {
-      return current;
-    }
-    if (isSandboxTerminalFailure(current.status)) {
-      throw new Error(`Sandbox '${current.name}' is ${current.status}`);
-    }
-    if (current.status === "paused") {
-      current = await ctx.client.sandboxes.resumeSandbox(
-        { sandbox_name: current.name },
-        { abortSignal },
-      );
-      continue;
-    }
-
-    await sleep(2_000, abortSignal);
-    current = await ctx.client.sandboxes.getSandbox(
-      { sandbox_name: current.name },
+  if (isSandboxRunning(sandbox.status)) {
+    return sandbox;
+  }
+  if (isSandboxTerminalFailure(sandbox.status)) {
+    throw new Error(`Sandbox '${sandbox.name}' is ${sandbox.status}`);
+  }
+  if (sandbox.status === "paused") {
+    const resumed = await ctx.client.sandboxes.resumeSandbox(
+      { sandbox_name: sandbox.name },
       { abortSignal },
+    );
+    if (isSandboxRunning(resumed.status)) {
+      return resumed;
+    }
+    if (isSandboxTerminalFailure(resumed.status)) {
+      throw new Error(`Sandbox '${resumed.name}' is ${resumed.status}`);
+    }
+    throw new Error(
+      `Sandbox '${resumed.name}' is ${resumed.status} after resume`,
     );
   }
 
-  throw new Error(`Timed out waiting for sandbox '${sandbox.name}' to be ready`);
+  throw new Error(
+    `Sandbox '${sandbox.name}' is ${sandbox.status}; expected running`,
+  );
 }
 
 async function createOrReuseSandbox(options: {
