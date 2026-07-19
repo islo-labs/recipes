@@ -1,5 +1,5 @@
 {
-  "name": "@islo-labs/ai-sdk-sandbox",
+  "name": "@islo-labs/islo-ai-sdk-sandbox",
   "version": "0.1.0",
   "description": "HarnessV1SandboxProvider for Islo sandboxes (AI SDK HarnessAgent)",
   "type": "module",

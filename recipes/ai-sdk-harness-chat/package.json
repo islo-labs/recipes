@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build -w @islo-labs/ai-sdk-sandbox && next build",
+    "build": "npm run build -w @islo-labs/islo-ai-sdk-sandbox && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test lib/**/*.test.ts"
@@ -17,7 +17,7 @@
     "@ai-sdk/harness-codex": "^1.0.35",
     "@ai-sdk/provider-utils": "^5.0.10",
     "@ai-sdk/react": "^4.0.23",
-    "@islo-labs/ai-sdk-sandbox": "*",
+    "@islo-labs/islo-ai-sdk-sandbox": "*",
     "@islo-labs/sdk": "^0.0.31",
     "ai": "^7.0.22",
     "next": "16.2.10",

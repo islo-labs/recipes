@@ -18,7 +18,7 @@ import {
   deleteSandboxByName,
   formatIsloError,
   sandboxNameForSession,
-} from "@islo-labs/ai-sdk-sandbox";
+} from "@islo-labs/islo-ai-sdk-sandbox";
 
 export const maxDuration = 300;
 
