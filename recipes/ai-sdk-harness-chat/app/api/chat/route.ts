@@ -1,3 +1,7 @@
+import type {
+  HarnessAgentResumeSessionState,
+  HarnessAgentSession,
+} from "@ai-sdk/harness/agent";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -13,6 +17,7 @@ import {
   clearLiveHarnessSession,
   getHarnessResumeState,
   getLiveHarnessSession,
+  setHarnessResumeState,
   setLiveHarnessSession,
 } from "@/lib/harness-session";
 import {
@@ -22,7 +27,6 @@ import {
 import { createChatLogger, createRequestId } from "@/lib/chat-log";
 import {
   deleteSandboxByName,
-  formatIsloError,
   sandboxNameForSession,
 } from "@islo-labs/islo-ai-sdk-sandbox";
 
@@ -39,6 +43,83 @@ function writeHarnessStatus(
     data: harnessStatus(stage, message),
     transient: true,
   });
+}
+
+function isBridgePortConflict(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("EADDRINUSE") && message.includes("4000");
+}
+
+function isRecoverableSandboxState(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    isBridgePortConflict(error) ||
+    /sandbox '[^']+' is stopped/i.test(message)
+  );
+}
+
+async function detachHarnessSession(
+  session: HarnessAgentSession,
+  chatId: string,
+  log: ReturnType<typeof createChatLogger>,
+): Promise<HarnessAgentResumeSessionState | undefined> {
+  try {
+    const resumeFrom = await session.detach();
+    setHarnessResumeState(chatId, resumeFrom);
+    log.info("harness session detached", { chatId });
+    return resumeFrom;
+  } catch (error) {
+    log.warn("harness session detach failed", {
+      chatId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  } finally {
+    clearLiveHarnessSession(chatId);
+  }
+}
+
+async function createHarnessSession(options: {
+  agent: ReturnType<typeof getAgent>;
+  chatId: string;
+  resumeFrom?: HarnessAgentResumeSessionState;
+  sandboxName: string;
+  abortSignal: AbortSignal;
+  log: ReturnType<typeof createChatLogger>;
+}): Promise<HarnessAgentSession> {
+  const create = () =>
+    options.agent.createSession(
+      options.resumeFrom
+        ? {
+            sessionId: options.chatId,
+            resumeFrom: options.resumeFrom,
+            abortSignal: options.abortSignal,
+          }
+        : { sessionId: options.chatId, abortSignal: options.abortSignal },
+    );
+
+  try {
+    return await create();
+  } catch (error) {
+    if (options.resumeFrom || !isRecoverableSandboxState(error)) {
+      throw error;
+    }
+
+    // Dev-server restarts drop in-memory resume state while the sandbox bridge
+    // keeps listening on :4000. A failed turn can also leave a stopped sandbox.
+    options.log.warn("resetting orphan harness sandbox", {
+      chatId: options.chatId,
+      sandboxName: options.sandboxName,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    clearHarnessResumeState(options.chatId);
+    await deleteSandboxByName(
+      options.sandboxName,
+      {},
+      options.abortSignal,
+    ).catch(() => undefined);
+    return await create();
+  }
 }
 
 export async function POST(req: Request) {
@@ -96,11 +177,14 @@ export async function POST(req: Request) {
             writeHarnessStatus(writer, "bootstrap");
           }
 
-          session = await agent.createSession(
-            resumeFrom
-              ? { sessionId: chatId, resumeFrom, abortSignal: req.signal }
-              : { sessionId: chatId, abortSignal: req.signal },
-          );
+          session = await createHarnessSession({
+            agent,
+            chatId,
+            resumeFrom,
+            sandboxName,
+            abortSignal: req.signal,
+            log,
+          });
           createdSession = true;
           setLiveHarnessSession(chatId, session);
           writeHarnessStatus(writer, "ready");
@@ -129,31 +213,35 @@ export async function POST(req: Request) {
           error: error instanceof Error ? error.message : String(error),
         });
 
-        if (createdSession || session) {
-          try {
-            await session?.destroy();
-          } catch {
-            // Ignore cleanup errors after a failed turn.
+        if (session) {
+          const detached = await detachHarnessSession(session, chatId, log);
+          if (!detached) {
+            try {
+              await session.destroy();
+            } catch {
+              // Ignore cleanup errors after a failed turn.
+            }
+            if (!resumeFrom && createdSession) {
+              try {
+                await deleteSandboxByName(sandboxName, {}, req.signal);
+                log.info("deleted sandbox after failed turn", { sandboxName });
+              } catch {
+                // Best-effort cleanup.
+              }
+            }
+            clearHarnessResumeState(chatId);
           }
         }
 
-        if (!resumeFrom && createdSession) {
-          try {
-            await deleteSandboxByName(sandboxName, {}, req.signal);
-            log.info("deleted sandbox after failed turn", { sandboxName });
-          } catch {
-            // Best-effort cleanup.
-          }
-        }
-
-        if (createdSession) {
-          clearLiveHarnessSession(chatId);
-        }
-        clearHarnessResumeState(chatId);
         throw error;
       }
     },
     onFinish: async () => {
+      const session = getLiveHarnessSession(chatId);
+      if (session) {
+        await detachHarnessSession(session, chatId, log);
+      }
+
       log.info("harness turn complete", { chatId });
     },
     onError: (error) =>

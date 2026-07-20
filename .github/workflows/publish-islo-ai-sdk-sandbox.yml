@@ -1,0 +1,61 @@
+name: Publish islo-ai-sdk-sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "@ai-sdk/harness version to publish (defaults to latest)"
+        required: false
+        type: string
+  push:
+    tags:
+      - "islo-ai-sdk-sandbox-v*"
+
+concurrency:
+  group: publish-islo-ai-sdk-sandbox
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: recipes/ai-sdk-harness-chat
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync peer versions
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          if [ -n "$REQUESTED_VERSION" ]; then
+            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox -- "$REQUESTED_VERSION"
+          elif [[ "$GIT_TAG" == islo-ai-sdk-sandbox-v* ]]; then
+            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox -- "${GIT_TAG#islo-ai-sdk-sandbox-v}"
+          else
+            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox
+          fi
+
+      - name: Type check
+        run: npm run type-check -w @islo-labs/islo-ai-sdk-sandbox
+
+      - name: Build
+        run: npm run build -w @islo-labs/islo-ai-sdk-sandbox
+
+      - name: Publish to npm
+        run: npm publish -w @islo-labs/islo-ai-sdk-sandbox --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

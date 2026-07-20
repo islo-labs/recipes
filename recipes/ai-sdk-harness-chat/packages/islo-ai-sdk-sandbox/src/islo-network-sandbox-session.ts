@@ -367,7 +367,7 @@ async function probeWebSocketShare(
     };
     const onOpen = () => finish(true);
     const onError = () => finish(false);
-    const onClose = (event: CloseEvent) => {
+    const onClose = (event: { code: number }) => {
       // Harness bridges reject unauthenticated probes with 1008. That still
       // proves the share routes to a live bridge listener.
       if (event.code === 1008) {
