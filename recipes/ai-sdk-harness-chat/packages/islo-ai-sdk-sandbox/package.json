@@ -1,10 +1,9 @@
 {
   "name": "@islo-labs/islo-ai-sdk-sandbox",
   "version": "0.1.0",
-  "description": "HarnessV1SandboxProvider for Islo sandboxes (AI SDK HarnessAgent)",
+  "description": "Islo sandbox provider for the AI SDK HarnessAgent",
   "type": "module",
   "license": "MIT",
-  "private": true,
   "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -17,28 +16,47 @@
     }
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc -p tsconfig.build.json --noEmit"
+    "type-check": "tsc -p tsconfig.build.json --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@islo-labs/sdk": "^0.0.31"
   },
   "peerDependencies": {
-    "@ai-sdk/harness": "^1.0.33",
-    "@ai-sdk/provider-utils": "^5.0.10"
+    "@ai-sdk/harness": "^1.0.0",
+    "@ai-sdk/provider-utils": "^5.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/harness": "^1.0.33",
-    "@ai-sdk/provider-utils": "^5.0.10",
+    "@ai-sdk/harness": "^1.0.36",
+    "@ai-sdk/provider-utils": "^5.0.11",
     "@types/node": "^22",
     "tsup": "^8.5.1",
     "typescript": "^5"
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/islo-labs/recipes.git",
+    "directory": "recipes/ai-sdk-harness-chat/packages/islo-ai-sdk-sandbox"
+  },
+  "homepage": "https://github.com/islo-labs/recipes/tree/main/recipes/ai-sdk-harness-chat/packages/islo-ai-sdk-sandbox",
+  "bugs": {
+    "url": "https://github.com/islo-labs/recipes/issues"
+  },
+  "keywords": [
+    "islo",
+    "ai-sdk",
+    "harness",
+    "sandbox",
+    "codex"
+  ]
 }

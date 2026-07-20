@@ -4,7 +4,7 @@ Next.js chat app that runs **Codex** through the experimental AI SDK [`HarnessAg
 
 ```
 useChat → /api/chat → HarnessAgent({ harness: codex, sandbox: createIsloSandbox() })
-  → packages/islo-ai-sdk-sandbox (bundled source, not published to npm)
+  → @islo-labs/islo-ai-sdk-sandbox (npm package; workspace copy in this recipe)
   → wss:// share bridge → browser
 ```
 
@@ -41,7 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Path | Role |
 |------|------|
-| `packages/islo-ai-sdk-sandbox/src/` | Bundled Islo sandbox provider (sync `createSandbox`, exec SSE) |
+| `packages/islo-ai-sdk-sandbox/` | [`@islo-labs/islo-ai-sdk-sandbox`](https://www.npmjs.com/package/@islo-labs/islo-ai-sdk-sandbox) — Islo sandbox provider (sync `createSandbox`, exec SSE) |
 | `lib/agent.ts` | `HarnessAgent` wired to `createIsloSandbox()` |
 | `lib/harness-session.ts` | In-memory live sessions + `resumeFrom` store between HTTP requests |
 | `lib/harness-status.ts` | Transient setup status events streamed to the browser |
