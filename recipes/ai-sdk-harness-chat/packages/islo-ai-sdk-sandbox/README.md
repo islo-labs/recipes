@@ -4,13 +4,13 @@ Islo sandbox provider for the [AI SDK HarnessAgent](https://ai-sdk.dev/docs/ai-s
 
 ## Install
 
-Install this package alongside your AI SDK harness dependencies. **Use the same version for `@islo-labs/islo-ai-sdk-sandbox` and `@ai-sdk/harness`** so peer dependency ranges stay aligned.
+Install this package alongside your AI SDK harness dependencies. You bring your own `@ai-sdk/harness` version — this package declares it as a **peer dependency**, so npm will use whatever version your app already has.
 
 ```bash
-npm install @islo-labs/islo-ai-sdk-sandbox@1.0.36 @ai-sdk/harness@1.0.36 @ai-sdk/provider-utils
+npm install @islo-labs/islo-ai-sdk-sandbox @ai-sdk/harness @ai-sdk/provider-utils
 ```
 
-You also need `@islo-labs/sdk` (installed automatically) and an Islo API key.
+`@islo-labs/sdk` is installed automatically. You also need an Islo API key.
 
 ## Usage
 
@@ -27,21 +27,16 @@ const agent = new HarnessAgent({
 });
 ```
 
-## Versioning
+## Peer dependencies
 
-This package tracks **`@ai-sdk/harness` releases**:
+| Package | Range | Notes |
+| --- | --- | --- |
+| `@ai-sdk/harness` | `^1.0.0` | Installed by your app |
+| `@ai-sdk/provider-utils` | `^5.0.0` | Installed by your app |
 
-| Package | Versioning |
-| --- | --- |
-| `@islo-labs/islo-ai-sdk-sandbox` | Mirrors `@ai-sdk/harness` (e.g. `1.0.36`) |
-| `@ai-sdk/harness` | Peer dependency — you install it |
-| `@ai-sdk/provider-utils` | Peer dependency — version resolved from harness |
+You do **not** need a new `@islo-labs/islo-ai-sdk-sandbox` release when AI SDK ships a patch or minor update within those ranges. Upgrade `@ai-sdk/harness` in your app as usual.
 
-When you upgrade the AI SDK harness, upgrade this package to the same version:
-
-```bash
-npm install @islo-labs/islo-ai-sdk-sandbox@1.0.36 @ai-sdk/harness@1.0.36
-```
+This package lists the same modules in `devDependencies` for local development and type-checking ([peer deps are not auto-installed](https://dev.to/jody/a-tip-on-using-peer-dependencies-with-typescript-2bji)).
 
 ## Environment
 

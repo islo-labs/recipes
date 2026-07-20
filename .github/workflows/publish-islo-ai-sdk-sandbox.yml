@@ -2,11 +2,6 @@ name: Publish islo-ai-sdk-sandbox
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "@ai-sdk/harness version to publish (defaults to latest)"
-        required: false
-        type: string
   push:
     tags:
       - "islo-ai-sdk-sandbox-v*"
@@ -35,19 +30,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Sync peer versions
-        env:
-          REQUESTED_VERSION: ${{ inputs.version }}
-          GIT_TAG: ${{ github.ref_name }}
-        run: |
-          if [ -n "$REQUESTED_VERSION" ]; then
-            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox -- "$REQUESTED_VERSION"
-          elif [[ "$GIT_TAG" == islo-ai-sdk-sandbox-v* ]]; then
-            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox -- "${GIT_TAG#islo-ai-sdk-sandbox-v}"
-          else
-            npm run sync-peer-versions -w @islo-labs/islo-ai-sdk-sandbox
-          fi
 
       - name: Type check
         run: npm run type-check -w @islo-labs/islo-ai-sdk-sandbox

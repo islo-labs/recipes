@@ -1,6 +1,6 @@
 {
   "name": "@islo-labs/islo-ai-sdk-sandbox",
-  "version": "1.0.36",
+  "version": "0.1.0",
   "description": "Islo sandbox provider for the AI SDK HarnessAgent",
   "type": "module",
   "license": "MIT",
@@ -21,15 +21,14 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc -p tsconfig.build.json --noEmit",
-    "prepublishOnly": "npm run build",
-    "sync-peer-versions": "node scripts/sync-peer-versions.mjs"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@islo-labs/sdk": "^0.0.31"
   },
   "peerDependencies": {
-    "@ai-sdk/harness": "^1.0.36",
-    "@ai-sdk/provider-utils": "^5.0.11"
+    "@ai-sdk/harness": "^1.0.0",
+    "@ai-sdk/provider-utils": "^5.0.0"
   },
   "devDependencies": {
     "@ai-sdk/harness": "^1.0.36",
