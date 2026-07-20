@@ -53,3 +53,14 @@ See the [ai-sdk-harness-chat recipe](https://github.com/islo-labs/recipes/tree/m
 ## Requirements
 
 - Node.js 22+
+
+## Publishing (maintainers)
+
+This public repo does not run automated npm publishes. Release from a maintainer machine after `npm login`:
+
+```bash
+cd recipes/ai-sdk-harness-chat
+npm ci
+npm run build -w @islo-labs/islo-ai-sdk-sandbox
+npm publish -w @islo-labs/islo-ai-sdk-sandbox --access public
+```
