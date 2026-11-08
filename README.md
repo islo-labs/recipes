@@ -53,6 +53,14 @@ Run coding agents inside an Islo computer via the Python SDK.
 
 CLI alternative for Claude Code and Codex: `islo use --agent claude` / `--agent codex`. See [agent integration](https://docs.islo.dev/cli/agent-integration).
 
+## Prompt recipes
+
+No code: a set of prompts your coding agent follows, with the [Islo skills](https://github.com/islo-labs/skills) installed, to build Islo resources for your own Islo version.
+
+| Recipe | Description |
+|--------|-------------|
+| [`jira-ticket-planning-line`](recipes/jira-ticket-planning-line/) | Factory Line that turns a Jira ticket into an agent-reviewed implementation plan |
+
 ## Web app recipes
 
 | Recipe | Description |
